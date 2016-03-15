@@ -22,6 +22,7 @@
 # see <http://www.lsstcorp.org/LegalNotices/>.
 #
 
+import copy
 import cPickle
 import collections
 import os
@@ -32,7 +33,7 @@ import yaml
 
 class AccessCfg(Policy, yaml.YAMLObject):
     yaml_tag = u"!AccessCfg"
-    def __init__(self, cls, storageCfg):
+    def __init__(self, cls, storage):
         super(AccessCfg, self).__init__({'storageCfg':storageCfg, 'cls':cls})
 
 class Access:
@@ -45,14 +46,25 @@ class Access:
 
     """
 
-    @classmethod
-    def cfg(cls, storageCfg):
-        """Helper func to create a properly formatted Policy to configure an Access instance.
+#     @classmethod
+#     def cfg(cls, storageCfg):
+#         """Helper func to create a properly formatted Policy to configure an Access instance.
+#
+#         :param storageCfg: a cfg to instantiate a storage.
+#         :return:
+#         """
+#         return AccessCfg(cls=cls, storageCfg=storageCfg)
 
-        :param storageCfg: a cfg to instantiate a storage.
-        :return:
-        """
-        return AccessCfg(cls=cls, storageCfg=storageCfg)
+    @classmethod
+    def makeCfg(cls, **kwargs):
+        kwargsToPassOn = copy.copy(kwargs)
+        del kwargsToPassOn['access']
+        for key in kwargs.keys():
+            if key in kwargs:
+                if hasattr(kwargs[key], 'makeCfg'):
+                    kwargs[key] = kwargs[key].makeCfg(**kwargsToPassOn)
+        return AccessCfg(cls=cls, **kwargs)
+
 
     def __init__(self, cfg):
         """Initializer

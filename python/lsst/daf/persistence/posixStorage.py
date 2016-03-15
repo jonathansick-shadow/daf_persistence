@@ -22,6 +22,7 @@
 # see <http://www.lsstcorp.org/LegalNotices/>.
 #
 
+import copy
 import cPickle
 import importlib
 import os
@@ -54,14 +55,25 @@ class StorageCfg(Policy):
 
 class PosixStorage(object):
 
-    @classmethod
-    def cfg(cls, root=None):
-        """Helper func to create a properly formatted Policy to configure a PosixStorage instance.
+#     @classmethod
+#     def cfg(cls, root=None):
+#         """Helper func to create a properly formatted Policy to configure a PosixStorage instance.
+#
+#         :param root: a posix path where the repository is or should be created.
+#         :return:
+#         """
+#         return StorageCfg(root=root, cls=cls)
 
-        :param root: a posix path where the repository is or should be created.
-        :return:
-        """
-        return StorageCfg(root=root, cls=cls)
+    def makeCfg(cls, **kwargs):
+        kwargsToPassOn = copy.copy(kwargs)
+        del kwargsToPassOn['storage']
+        for key in kwargs.keys():
+            if key is not 'storage':
+                if key in kwargs:
+                    if hasattr(kwargs[key], 'makeCfg'):
+                            kwargs[key] = kwargs[key].makeCfg(**kwargsToPassOn)
+        return StorageCfg(cls=cls, **kwargs)
+
 
     def __init__(self, cfg):
         """Initializer

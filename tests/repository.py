@@ -35,18 +35,19 @@ import yaml
 
 import lsst.utils.tests as utilsTests
 import lsst.daf.persistence as dp
-from lsst.daf.persistence import posixRepoCfg, Policy
+from lsst.daf.persistence import Policy, MapperCfg
 
-def repoCfg(*args, **kwargs):
-    """short hack to work around the issue that the root must be in mapperArgs in some cases"""
-    kwargs['mapperArgs'] = {'root':kwargs['root']} if 'root' in kwargs else None
-    return posixRepoCfg(*args, **kwargs)
 
 class ParentMapper(dp.Mapper):
-
-    @classmethod
-    def cfg(cls, root=None):
-        return Policy({'cls':cls, 'root':root})
+    def makeCfg(cls, **kwargs):
+        for key in kwargs.keys():
+            if key in kwargs:
+                if hasattr(kwargs[key], 'makeCfg'):
+                    try:
+                        kwargs[key] = kwargs[key].makeCfg(**kwargs)
+                    except:
+                        import pdb; pdb.set_trace()
+        return MapperCfg(cls=cls, **kwargs)
 
     def __init__(self, cfg):
         try:
@@ -144,19 +145,22 @@ class TestBasics(unittest.TestCase):
         outputRootA = 'tests/repository/repoA'
         outputRootB = 'tests/repository/repoB'
 
-        storageCfg = dp.PosixStorage.cfg(root=inputRoot)
-        accessCfg = dp.Access.cfg(storageCfg=storageCfg)
-        inputRepoCfg = dp.Repository.cfg(accessCfg=accessCfg,
-                                         mapper=ParentMapper(ParentMapper.cfg(root=inputRoot)))
+#         storageCfg = dp.PosixStorage.cfg(root=inputRoot)
+#         accessCfg = dp.Access.cfg(storageCfg=storageCfg)
+        inputRepoCfg = dp.Repository.makeCfg(access=dp.Access, mapper=ParentMapper, root=inputRoot,
+                                             storage=dp.PosixStorage)
+
+#         inputRepoCfg = dp.Repository.makeCfg(accessCfg=accessCfg,
+#                                          mapper=ParentMapper(ParentMapper.cfg(root=inputRoot)))
 
         storageCfg = dp.PosixStorage.cfg(root=outputRootB)
         accessCfg = dp.Access.cfg(storageCfg=storageCfg)
-        repoBCfg = dp.Repository.cfg(accessCfg=accessCfg, parentCfgs=[inputRepoCfg],
+        repoBCfg = dp.Repository.makeCfg(accessCfg=accessCfg, parentCfgs=[inputRepoCfg],
                                      mapper=ChildrenMapper(root=outputRootB))
 
         storageCfg = dp.PosixStorage.cfg(root=outputRootA)
         accessCfg = dp.Access.cfg(storageCfg=storageCfg)
-        repoACfg = dp.Repository.cfg(accessCfg=accessCfg, mapper=ChildrenMapper(root=outputRootA),
+        repoACfg = dp.Repository.makeCfg(accessCfg=accessCfg, mapper=ChildrenMapper(root=outputRootA),
                                      peerCfgs=[repoBCfg], parentCfgs=[inputRepoCfg])
 
         butlerCfg = dp.Butler.cfg(repoCfg=repoACfg)
@@ -261,13 +265,13 @@ class TestWriting(unittest.TestCase):
         outputRootA = 'tests/repository/repoA'
         storageCfgA = dp.PosixStorage.cfg(root=outputRootA)
         accessCfgA = dp.Access.cfg(storageCfg=storageCfgA)
-        repoACfg = dp.Repository.cfg(id='repoA', accessCfg=accessCfgA,
+        repoACfg = dp.Repository.makeCfg(id='repoA', accessCfg=accessCfgA,
                                      mapper=MapperForTestWriting(root=outputRootA))
 
         outputRootB = 'tests/repository/repoB'
         storageCfg = dp.PosixStorage.cfg(root=outputRootB)
         accessCfg = dp.Access.cfg(storageCfg=storageCfg)
-        repoBCfg = dp.Repository.cfg(id='repoB', accessCfg=accessCfg, peerCfgs=[repoACfg],
+        repoBCfg = dp.Repository.makeCfg(id='repoB', accessCfg=accessCfg, peerCfgs=[repoACfg],
                                      mapper=MapperForTestWriting(root=outputRootB))
 
         butlerCfg = dp.Butler.cfg(repoCfg=repoBCfg)
@@ -280,6 +284,7 @@ class TestWriting(unittest.TestCase):
 
         # create butlers where the output repos are now input repos
 
+
         # currently must pass a mapper to the repo cfg, even though we are not going to write to this repo
         # (only read from parent repos). So it's ok to set root to an empty path, it will just treat the
         # current dir as root, and we won't write to it.
@@ -289,7 +294,7 @@ class TestWriting(unittest.TestCase):
         repoCfg = dp.Repository.cfg(parentCfgs=(repoBCfg,), mapper=MapperForTestWriting(root=''))
         butlerD = dp.Butler(dp.Butler.cfg(repoCfg=repoCfg))
 
-        # # verify the objects exist by getting them
+        # verify the objects exist by getting them
         self.assertEqual(objA, butlerC.get('foo', {'val':1}))
         self.assertEqual(objA, butlerC.get('foo', {'val':1}))
         self.assertEqual(objB, butlerD.get('foo', {'val':2}))
@@ -350,10 +355,13 @@ class TestPeerPut(unittest.TestCase):
             shutil.rmtree('tests/repository')
 
     def test(self):
-        repoACfg = repoCfg(root='tests/repository/repoA', mapper=MapperForTestWriting)
-        repoBCfg = repoCfg(root='tests/repository/repoB', mapper=MapperForTestWriting)
-        repoCCfg = repoCfg(root='tests/repository/repoC', mapper=MapperForTestWriting,
-                               peerCfgs=[repoACfg, repoBCfg])
+
+        repoACfg = dp.Repository.makeCfg(root='tests/repository/repoA', mapper=MapperForTestWriting, access=dp.Access,
+                                         storage=dp.PosixStorage)
+        repoBCfg = dp.Repository.makeCfg(root='tests/repository/repoB', mapper=MapperForTestWriting, access=dp.Access,
+                                         storage=dp.PosixStorage)
+        repoCCfg = dp.Repository.makeCfg(root='tests/repository/repoC', mapper=MapperForTestWriting, access=dp.Access,
+                                         storage=dp.PosixStorage, peerCfgs=[repoACfg, repoBCfg])
 
 
         butler = dp.Butler(dp.Butler.cfg(repoCfg=repoCCfg))

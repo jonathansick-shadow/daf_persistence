@@ -22,6 +22,7 @@
 # see <http://www.lsstcorp.org/LegalNotices/>.
 #
 
+import copy
 import yaml
 
 from lsst.daf.persistence import Policy
@@ -93,6 +94,18 @@ class Mapper(object):
 
     validate(self, dataId)
     """
+
+    @classmethod
+    def makeCfg(cls, **kwargs):
+        kwargsToPassOn = copy.copy(kwargs)
+        del kwargsToPassOn['mapper']
+        for key in kwargs.keys():
+            if key in kwargs:
+                if key is not 'mapper':
+                    if hasattr(kwargs[key], 'makeCfg'):
+                        kwargs[key] = kwargs[key].makeCfg(**kwargsToPassOn)
+        return MapperCfg(cls=cls, **kwargs)
+
 
     @staticmethod
     def Mapper(cfg):

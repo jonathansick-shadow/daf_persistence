@@ -173,6 +173,26 @@ class RepoDateMapper(dp.RepositoryMapper):
 # Test #
 ########
 
+
+def makeRepoCfg(root, storage, access, mapper, policy)
+    storageCfg = storage.cfg(root=self.calibsRoot)
+    accessCfg = access.cfg(storageCfg=storageCfg)
+    mapperCfg = mapper.cfg(policy=policy)
+    #next left off defining these functions. then use them in code, below.
+
+def makeButlerCfg(storage, access, mapper, policy, parentRepoCfgs)
+    # create a cfg of a repository for our repositories
+    storageCfg = dp.PosixStorage.cfg(root=self.calibsRoot)
+    accessCfg = dp.Access.cfg(storageCfg=storageCfg)
+    # Note that RepoDateMaper looks for the dataId['date'], and when looking for a location to read it will use the
+    # registry to find the most recent date before dataId['date'].
+    mapperCfg = RepoDateMapper.cfg(policy=self.repoMapperPolicy)
+    repoOfRepoCfg = dp.Repository.cfg(parentCfgs=dp.Repository.cfg(accessCfg=accessCfg, mapper=mapperCfg))
+    repoButler = dp.Butler(dp.Butler.cfg(repoCfg=repoOfRepoCfg))
+
+repoCfg = makeRepoCfg(root=self.calibsRoot, storage=dp.PosixStorage, access=dp.Access, mapper=RepoDateMapper)
+
+
 class RepoFindByDate(unittest.TestCase):
 
     def clean(self):

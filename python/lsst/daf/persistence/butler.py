@@ -41,13 +41,6 @@ import lsst.pex.policy as pexPolicy
 from lsst.daf.persistence import StorageList, LogicalLocation, ReadProxy, ButlerSubset, ButlerDataRef, \
     Persistence, Repository, Access, PosixStorage, Policy, NoResults, MultipleResults
 
-def posixRepoCfg(root=None, mapper=None, mapperArgs=None, parentRepoCfgs=[], id=None, parentJoin='left',
-                 peerCfgs=[]):
-    storageCfg = PosixStorage.cfg(root=root)
-    accessCfg = Access.cfg(storageCfg=storageCfg)
-    repoCfg = Repository.cfg(id=id, accessCfg=accessCfg, mapper=mapper, mapperArgs=mapperArgs,
-                                        parentCfgs=parentRepoCfgs, parentJoin=parentJoin, peerCfgs=peerCfgs)
-    return repoCfg
 
 class ButlerCfg(Policy, yaml.YAMLObject):
     """Represents a Butler configuration.

@@ -38,7 +38,8 @@ class RepositoryCfg(Policy, yaml.YAMLObject):
     yaml_loader = yaml.Loader
     yaml_dumper = yaml.Dumper
 
-    def __init__(self, cls, id, accessCfg, parentCfgs, parentJoin, peerCfgs, mapper, mapperArgs):
+    def __init__(self, cls, id=None, accessCfg=None, parentCfgs=(), parentJoin='left', peerCfgs=(), mapper=None,
+                 mapperArgs=None):
         super(RepositoryCfg, self).__init__()
         if not hasattr(parentCfgs, '__iter__'):
             parentCfgs = (parentCfgs,)
@@ -112,7 +113,7 @@ class Repository(object):
     _supportedParentJoin = ('left', 'outer')
 
     @classmethod
-    def cfg(cls, id=None, accessCfg=None, parentCfgs=[], parentJoin='left', peerCfgs=[], mapper=None, mapperArgs=None):
+    def makeCfg(cls, **kwargs):
         """
         Helper func to create a properly formatted Policy to configure a Repository.
 
@@ -133,11 +134,19 @@ class Repository(object):
         :param mapperArgs: a dict of arguments to pass to the Mapper if it is to be instantiated.
         :return: a properly populated cfg Policy.
         """
-        if parentJoin not in Repository._supportedParentJoin:
+
+
+        if 'parentJoin' in kwargs and kwargs['parentJoin'] not in Repository._supportedParentJoin:
             raise RuntimeError('Repository.cfg parentJoin:%s not supported, must be one of:'
                                % (parentJoin, Repository._supportedParentJoin))
-        return RepositoryCfg(cls=cls, id=id, accessCfg=accessCfg, parentCfgs=parentCfgs,
-                             parentJoin=parentJoin, peerCfgs=peerCfgs, mapper=mapper, mapperArgs=mapperArgs)
+
+        for key in kwargs.keys():
+            if key in kwargs:
+                if hasattr(kwargs[key], 'makeCfg'):
+                    kwargs[key] = kwargs[key].makeCfg(**kwargs)
+
+        return RepositoryCfg(cls=cls, **kwargs)
+
 
     @staticmethod
     def makeFromCfg(repoCfg):
