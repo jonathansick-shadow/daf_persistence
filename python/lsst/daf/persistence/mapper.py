@@ -23,38 +23,13 @@
 #
 
 import copy
+import inspect
 import yaml
 
-from lsst.daf.persistence import Policy
+from lsst.daf.persistence import Policy, CfgHelper
 
 """This module defines the Mapper base class."""
 
-class MapperCfg(Policy):
-    """Represents a mapper configuration.
-
-        .. warning::
-
-            cfg is 'wet paint' and very likely to change. Use of it in production code other than via the 'old butler'
-            API is strongly discouraged.
-    """
-
-    yaml_tag = u"!MapperCfg"
-    yaml_loader = yaml.Loader
-    yaml_dumper = yaml.Dumper
-
-    def __init__(self, cls, policy, access):
-        super(MapperCfg, self).__init__()
-        self.update({'cls':cls, 'policy':policy, 'access':access})
-
-    @staticmethod
-    def to_yaml(dumper, obj):
-        return dumper.represent_mapping(RepositoryMapperCfg.yaml_tag,
-                                        {'cls':obj['cls'], 'policy':obj['policy'], 'access':obj['access']})
-
-    @staticmethod
-    def from_yaml(loader, node):
-        obj = loader.construct_mapping(node)
-        return RepositoryMapperCfg(**obj)
 
 class Mapper(object):
     """Mapper is a base class for all mappers.
@@ -95,31 +70,30 @@ class Mapper(object):
     validate(self, dataId)
     """
 
-    @classmethod
-    def makeCfg(cls, **kwargs):
-        kwargsToPassOn = copy.copy(kwargs)
-        del kwargsToPassOn['mapper']
-        for key in kwargs.keys():
-            if key in kwargs:
-                if key is not 'mapper':
-                    if hasattr(kwargs[key], 'makeCfg'):
-                        kwargs[key] = kwargs[key].makeCfg(**kwargsToPassOn)
-        return MapperCfg(cls=cls, **kwargs)
-
-
     @staticmethod
-    def Mapper(cfg):
-        '''Instantiate a Mapper from a configuration.
-        In come cases the cfg may have already been instantiated into a Mapper, this is allowed and
-        the input var is simply returned.
+    def makeFromCfg(cfg):
+        '''Initialize and keep the mapper in a member var.
 
-        :param cfg: the cfg for this mapper. It is recommended this be created by calling
-                    Mapper.cfg()
-        :return: a Mapper instance
+        :param cfg:
+        :return:
         '''
-        if isinstance(cfg, Policy):
-            return cfg['cls'](cfg)
-        return cfg
+        mapper = cfg['mapper'] if 'mapper' in cfg else None
+        if mapper is None:
+            return None
+        # if mapper is a string, import it:
+        if isinstance(mapper, basestring):
+            mapper = __import__(mapper)
+        # now if mapper is a class type (not instance), instantiate it:
+        if inspect.isclass(mapper):
+            funcArgsToIgnore = CfgHelper.defaultArgsToIgnore
+            if 'mapperArgs' in cfg:
+                funcArgsToIgnore += tuple(cfg['mapperArgs'].keys())
+            mapperArgs = CfgHelper.getFuncArgs(mapper.__init__, cfg, funcArgsToIgnore)
+            if 'mapperArgs' in cfg:
+                mapperArgs.update(cfg['mapperArgs'])
+            mapper = mapper(**mapperArgs)
+            cfg['mapper'] = mapper
+        return mapper
 
     def __new__(cls, *args, **kwargs):
         """Create a new Mapper, saving arguments for pickling.

@@ -27,6 +27,7 @@ from fsScanner import *
 from persistenceLib import *
 from butlerExceptions import *
 from policy import *
+from cfg import *
 from registries import *
 from butlerLocation import *
 from readProxy import *

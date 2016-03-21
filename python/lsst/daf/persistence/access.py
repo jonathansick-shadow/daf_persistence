@@ -25,16 +25,12 @@
 import copy
 import cPickle
 import collections
+import inspect
 import os
 
 from lsst.daf.persistence import Policy
 
 import yaml
-
-class AccessCfg(Policy, yaml.YAMLObject):
-    yaml_tag = u"!AccessCfg"
-    def __init__(self, cls, storage):
-        super(AccessCfg, self).__init__({'storageCfg':storageCfg, 'cls':cls})
 
 class Access:
     """Implements an butler framework interface for Transport, Storage, and Registry
@@ -46,34 +42,25 @@ class Access:
 
     """
 
-#     @classmethod
-#     def cfg(cls, storageCfg):
-#         """Helper func to create a properly formatted Policy to configure an Access instance.
-#
-#         :param storageCfg: a cfg to instantiate a storage.
-#         :return:
-#         """
-#         return AccessCfg(cls=cls, storageCfg=storageCfg)
+    @staticmethod
+    def makeFromCfg(cfg):
+        cfg['storage'] = cfg['storage'].makeFromCfg(cfg)
 
-    @classmethod
-    def makeCfg(cls, **kwargs):
-        kwargsToPassOn = copy.copy(kwargs)
-        del kwargsToPassOn['access']
-        for key in kwargs.keys():
-            if key in kwargs:
-                if hasattr(kwargs[key], 'makeCfg'):
-                    kwargs[key] = kwargs[key].makeCfg(**kwargsToPassOn)
-        return AccessCfg(cls=cls, **kwargs)
+        if isinstance(cfg['access'], str):
+            # todo import the string
+            raise NotImplemented("Need to handle importing access from string")
+        if inspect.isclass(cfg['access']):
+            cfg['access'] = cfg['access'](storage=cfg['storage'])
+        return cfg['access']
 
-
-    def __init__(self, cfg):
+    def __init__(self, storage):
         """Initializer
 
         :param cfg: a Policy that defines the configuration for this class. It is recommended that the cfg be
                     created by calling Access.cfg()
         :return:
         """
-        self.storage = cfg['storageCfg.cls'](cfg['storageCfg'])
+        self.storage = storage
 
     def __repr__(self):
         return 'Access(storage=%s)' % self.storage

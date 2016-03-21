@@ -36,7 +36,7 @@ import yaml
 
 import lsst.utils.tests as utilsTests
 import lsst.daf.persistence as dp
-from lsst.daf.persistence import posixRepoCfg, Policy
+from lsst.daf.persistence import Policy
 
 class PosixPickleStringHanlder:
     @staticmethod
@@ -69,11 +69,9 @@ class TestMapper(dp.Mapper):
     def cfg(cls, root=None):
         return TestMapperCfg(cls=cls, root=root)
 
-    def __init__(self, cfg):
+    def __init__(self, access):
         super(TestMapper, self).__init__()
-        # self.root = cfg['root']
-        self.access = cfg['access']
-        self.cfg = cfg
+        self.access = access
 
     def __repr__(self):
         return 'TestMapper(cfg=%s)' % self.cfg
@@ -112,31 +110,40 @@ class ReposInButler(unittest.TestCase):
             }
         }
 
-        # create a cfg of a repository for our repositories
-        storageCfg = dp.PosixStorage.cfg(root='tests/repoOfRepos')
-        accessCfg = dp.Access.cfg(storageCfg=storageCfg)
-        mapperCfg = dp.RepositoryMapper.cfg(policy=repoMapperPolicy)
+        # Create a cfg of a repository for our repositories
         # Note that right now a repo is either input OR output, there is no input-output repo, this design
         # is result of butler design conversations. Right now, if a user wants to write to and then read from
         # a repo, a repo can have a parent repo with the same access (and mapper) parameters as itself.
-        repoOfRepoCfg = dp.Repository.cfg(accessCfg=accessCfg, mapper=mapperCfg,
-                                          parentCfgs=(dp.Repository.cfg(accessCfg=accessCfg, mapper=mapperCfg),))
-        repoButler = dp.Butler(dp.Butler.cfg(repoCfg=repoOfRepoCfg))
+        repoOfRepoCfg = {'access':dp.Access,
+                         'storage':dp.PosixStorage,
+                         'root':'tests/repoOfRepos',
+                         'repository':dp.Repository,
+                         'mapper':dp.RepositoryMapper,
+                         'policy':repoMapperPolicy,
+                         'parents':{'repository':dp.Repository,
+                                    'storage':dp.PosixStorage,
+                                    'root':'tests/repoOfRepos',
+                                    'access':dp.Access,
+                                    'mapper':dp.RepositoryMapper,
+                                    'policy':repoMapperPolicy}}
+        repoButler = dp.Butler(repoOfRepoCfg)
         # create a cfg of a repository we'd like to use. Note that we don't create the root of the cfg.
         # this will get populated by the repoOfRepos template.
-        repoCfg = dp.Repository.cfg(accessCfg=dp.Access.cfg(dp.PosixStorage.cfg()), mapper=TestMapper.cfg())
+        repoCfg = {'repository':dp.Repository,
+                   'access':dp.Access,
+                   'storage':dp.PosixStorage,
+                   'mapper':TestMapper}
         # and put that config into the repoOfRepos.
         repoButler.put(repoCfg, 'cfg', dataId={'version':123})
 
         # get the cfg back out of the butler. This will return a cfg with the root location populated.
         # i.e. repoCfg['accessCfg.storageCfg.root'] is populated.
         repoCfg = repoButler.get('cfg', dataId={'version':123}, immediate=True)
-        putButler = dp.Butler(dp.Butler.cfg(repoCfg=repoCfg))
+        putButler = dp.Butler(repoCfg)
 
         # Next create a butler for reading
         # This is an alternative to creating a repository that shares a storage location with its parent.
-        getButlerCfg = dp.Butler.cfg(repoCfg=dp.Repository.cfg(parentCfgs=(repoCfg)))
-        getButler = dp.Butler(getButlerCfg)
+        getButler = dp.Butler({'repository':dp.Repository, 'parents':repoCfg})
 
         obj = 'abc'
         putButler.put(obj, 'str', {'strId':'a'})
@@ -148,11 +155,14 @@ class ReposInButler(unittest.TestCase):
         del getButler, putButler, repoCfg, obj, reloadedObj
 
         # Create another repository, and put it in the repo of repos, with a new version number.
-        repoCfg = dp.Repository.cfg(accessCfg=dp.Access.cfg(dp.PosixStorage.cfg()), mapper=TestMapper.cfg())
+        repoCfg = {'repository':dp.Repository,
+                   'access':dp.Access,
+                   'storage':dp.PosixStorage,
+                   'mapper':TestMapper}
         repoButler.put(repoCfg, 'cfg', dataId={'version':124})
         repoCfg = repoButler.get('cfg', dataId={'version':124}, immediate=True)
-        putButler = dp.Butler(dp.Butler.cfg(repoCfg=repoCfg))
-        getButler = dp.Butler(dp.Butler.cfg(repoCfg=dp.Repository.cfg(parentCfgs=(repoCfg))))
+        putButler = dp.Butler(repoCfg)
+        getButler = dp.Butler({'repository':dp.Repository, 'parents':repoCfg})
         # create an object that is slightly different than the object in repo version 123, and give it the
         # same dataId as the object in repo 123. Put it, and get it to verify.
         obj = 'abcd'
@@ -168,8 +178,8 @@ class ReposInButler(unittest.TestCase):
         # the objects, and verify correct values.
         repo123Cfg = repoButler.get('cfg', dataId={'version':123}, immediate=True)
         repo124Cfg = repoButler.get('cfg', dataId={'version':124}, immediate=True)
-        butler123 = dp.Butler(dp.Butler.cfg(repoCfg=dp.Repository.cfg(parentCfgs=(repo123Cfg))))
-        butler124 = dp.Butler(dp.Butler.cfg(repoCfg=dp.Repository.cfg(parentCfgs=(repo124Cfg))))
+        butler123 = dp.Butler({'repository':dp.Repository, 'parents':repo123Cfg})
+        butler124 = dp.Butler({'repository':dp.Repository, 'parents':repo124Cfg})
         obj123 = butler123.get('str', {'strId':'a'})
         obj124 = butler124.get('str', {'strId':'a'})
         self.assertEqual(obj123, 'abc')

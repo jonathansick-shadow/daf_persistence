@@ -24,6 +24,7 @@
 
 import cPickle
 import collections
+import copy
 import datetime
 import os
 import shutil
@@ -56,24 +57,13 @@ class PosixPickleStringHanlder:
 # Object Mapper #
 #################
 
-class TestMapperCfg(dp.Policy, yaml.YAMLObject):
-    yaml_tag = u"!TestMapperCfg"
-    def __init__(self, cls, root):
-        super(TestMapperCfg, self).__init__({'root':root, 'cls':cls})
-
 class TestMapper(dp.Mapper):
-    @classmethod
-    def cfg(cls, root=None):
-        return TestMapperCfg(cls=cls, root=root)
-
-    def __init__(self, cfg):
+    def __init__(self, access):
         super(TestMapper, self).__init__()
-        # self.root = cfg['root']
-        self.access = cfg['access']
-        self.cfg = cfg
+        self.access = access
 
     def __repr__(self):
-        return 'TestMapper(cfg=%s)' % self.cfg
+        return 'TestMapper(access=%s)' % self.access
 
     def map_str(self, dataId, write):
         template = "ccd_%(ccdNum)s.pickle"
@@ -89,8 +79,6 @@ class TestMapper(dp.Mapper):
 #####################
 # Repository Mapper #
 #####################
-
-
 
 class RepoDateMapper(dp.RepositoryMapper):
 
@@ -173,26 +161,6 @@ class RepoDateMapper(dp.RepositoryMapper):
 # Test #
 ########
 
-
-def makeRepoCfg(root, storage, access, mapper, policy)
-    storageCfg = storage.cfg(root=self.calibsRoot)
-    accessCfg = access.cfg(storageCfg=storageCfg)
-    mapperCfg = mapper.cfg(policy=policy)
-    #next left off defining these functions. then use them in code, below.
-
-def makeButlerCfg(storage, access, mapper, policy, parentRepoCfgs)
-    # create a cfg of a repository for our repositories
-    storageCfg = dp.PosixStorage.cfg(root=self.calibsRoot)
-    accessCfg = dp.Access.cfg(storageCfg=storageCfg)
-    # Note that RepoDateMaper looks for the dataId['date'], and when looking for a location to read it will use the
-    # registry to find the most recent date before dataId['date'].
-    mapperCfg = RepoDateMapper.cfg(policy=self.repoMapperPolicy)
-    repoOfRepoCfg = dp.Repository.cfg(parentCfgs=dp.Repository.cfg(accessCfg=accessCfg, mapper=mapperCfg))
-    repoButler = dp.Butler(dp.Butler.cfg(repoCfg=repoOfRepoCfg))
-
-repoCfg = makeRepoCfg(root=self.calibsRoot, storage=dp.PosixStorage, access=dp.Access, mapper=RepoDateMapper)
-
-
 class RepoFindByDate(unittest.TestCase):
 
     def clean(self):
@@ -211,24 +179,28 @@ class RepoFindByDate(unittest.TestCase):
         for date in dates:
             for type in types:
                 # create a cfg of a repository for our repositories
-                storageCfg = dp.PosixStorage.cfg(root=self.calibsRoot)
-                accessCfg = dp.Access.cfg(storageCfg=storageCfg)
-                mapperCfg = dp.RepositoryMapper.cfg(policy=self.repoMapperPolicy)
+                cfg = {'repository':dp.Repository,
+                       'storage':dp.PosixStorage,
+                       'root':self.calibsRoot,
+                       'access':dp.Access,
+                       'mapper':dp.RepositoryMapper,
+                       'policy':self.repoMapperPolicy}
                 # Note that right now a repo is either input OR output, there is no input-output repo, this design
                 # is result of butler design conversations. Right now, if a user wants to write to and then read from
                 # a repo, a repo can have a parent repo with the same access (and mapper) parameters as itself.
-                repoOfRepoCfg = dp.Repository.cfg(accessCfg=accessCfg, mapper=mapperCfg,
-                                                  parentCfgs=dp.Repository.cfg(accessCfg=accessCfg, mapper=mapperCfg))
-                repoButler = dp.Butler(dp.Butler.cfg(repoCfg=repoOfRepoCfg))
+                repoOfRepoCfg = copy.deepcopy(cfg)
+                repoOfRepoCfg['parents'] = cfg
+                repoButler = dp.Butler(repoOfRepoCfg)
                 # create a cfg of a repository we'd like to use. Note that we don't create the root of the cfg.
                 # this will get populated by the repoOfRepos template.
-                repoCfg = dp.Repository.cfg(accessCfg=dp.Access.cfg(dp.PosixStorage.cfg()), mapper=TestMapper.cfg())
+                repoCfg = {'repository':dp.Repository, 'storage':dp.PosixStorage, 'access':dp.Access,
+                           'mapper':TestMapper}
                 # and put that config into the repoOfRepos.
                 repoButler.put(repoCfg, 'cfg', dataId={'type':type, 'date':date})
                 # get the cfg back out of the butler. This will return a cfg with the root location populated.
                 # i.e. repoCfg['accessCfg.storageCfg.root'] is populated.
                 repoCfg = repoButler.get('cfg', dataId={'type':type, 'date':date}, immediate=True)
-                butler = dp.Butler(dp.Butler.cfg(repoCfg=repoCfg))
+                butler = dp.Butler(repoCfg)
                 obj = date + '_' + type # object contents do not rely on date & type, but it's an easy way to verify
                 butler.put(obj, 'str', {'ccdNum':1})
 
@@ -251,13 +223,14 @@ class RepoFindByDate(unittest.TestCase):
         self.writeCalibs()
 
         # create a cfg of a repository for our repositories
-        storageCfg = dp.PosixStorage.cfg(root=self.calibsRoot)
-        accessCfg = dp.Access.cfg(storageCfg=storageCfg)
-        # Note that RepoDateMaper looks for the dataId['date'], and when looking for a location to read it will use the
-        # registry to find the most recent date before dataId['date'].
-        mapperCfg = RepoDateMapper.cfg(policy=self.repoMapperPolicy)
-        repoOfRepoCfg = dp.Repository.cfg(parentCfgs=dp.Repository.cfg(accessCfg=accessCfg, mapper=mapperCfg))
-        repoButler = dp.Butler(dp.Butler.cfg(repoCfg=repoOfRepoCfg))
+        repoOfRepoCfg = {'repository':dp.Repository,
+                         'parents':{'repository':dp.Repository,
+                                    'access':dp.Access,
+                                    'storage':dp.PosixStorage,
+                                    'root':self.calibsRoot,
+                                    'mapper':RepoDateMapper,
+                                    'policy':self.repoMapperPolicy}}
+        repoButler = dp.Butler(repoOfRepoCfg)
 
         TestDates = collections.namedtuple('TestDates', ('searchVal', 'expectedVal'))
         dates = (TestDates('2020-02-14', '2020-02-01'),
@@ -269,7 +242,7 @@ class RepoFindByDate(unittest.TestCase):
         for date in dates:
             for type in types:
                 repoCfg = repoButler.get('cfg', dataId={'type':type, 'date':date.searchVal}, immediate=True)
-                butler = dp.Butler(dp.Butler.cfg(repoCfg=dp.Repository.cfg(parentCfgs=repoCfg)))
+                butler = dp.Butler({'repository':dp.Repository, 'parents':repoCfg})
                 obj = butler.get('str', {'ccdNum':1})
                 verificationDate = date.expectedVal + '_' + type
                 self.assertEqual(obj, verificationDate)

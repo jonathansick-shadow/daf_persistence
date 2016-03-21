@@ -103,20 +103,6 @@ class Butler(object):
     dataRef(self, datasetType, level=None, dataId={}, **rest)
     """
 
-    @classmethod
-    def cfg(cls, repoCfg):
-        """Helper func to create a properly formatted Policy to configure a Repository.
-
-        .. warning::
-
-            cfg is 'wet paint' and very likely to change. Use of it in production code other than via the 'old butler'
-            API is strongly discouraged.
-
-        :param repoCfg: Cfg used to instantiate the repository.
-        :return: a properly populated cfg Policy.
-        """
-        return ButlerCfg(cls=cls, repoCfg=repoCfg)
-
     def __init__(self, root, mapper=None, **mapperArgs):
         """Initializer for the Class.
 
@@ -137,13 +123,15 @@ class Butler(object):
                            is a class type to be instantiated by Butler.
         :return:
         """
-        if (isinstance(root, Policy)):
+        if (isinstance(root, dict)):
             config = root
         else:
-            parentCfg = posixRepoCfg(root=root, mapper=mapper, mapperArgs=mapperArgs)
-            repoCfg = posixRepoCfg(root=root, mapper=mapper, mapperArgs=mapperArgs, parentRepoCfgs=(parentCfg,))
-            config = Butler.cfg(repoCfg=repoCfg)
+            parentCfg = {'root':root, 'storage':PosixStorage, 'access':Access, 'mapper':mapper, 'mapperArgs':mapperArgs,
+                         'repository':Repository}
+            config = copy.deepcopy(parentCfg)
+            config['parents'] = parentCfg
         self._initWithCfg(config)
+
 
     def _initWithCfg(self, cfg):
         """Initialize this Butler with cfg
@@ -152,10 +140,15 @@ class Butler(object):
                     Best practice is to create this object by calling Butler.cfg()
         :return: None
         """
-        self._cfg = cfg
+        # keep a copy of the cfg that was used for init. It should not be modified; we should be able to use this cfg
+        # to instantiate a duplicate copy of bulter any time.
+        self._cfg = copy.deepcopy(cfg)
+        # Since we will be making changes to cfg, deepcopy it; do not change it. This allows it to be used again after
+        # initializing this butler.
+        cfg = copy.deepcopy(cfg)
         self.datasetTypeAliasDict = {}
 
-        self.repository = Repository.makeFromCfg(self._cfg['repoCfg'])
+        self.repository = cfg['repository'].makeFromCfg(cfg)
 
         # Always use an empty Persistence policy until we can get rid of it
         persistencePolicy = pexPolicy.Policy()
@@ -448,8 +441,8 @@ class Butler(object):
         results = location.repository.read(location)
         if len(results) == 1:
             results = results[0]
-        return results
         trace.done()
+        return results
 
     def __reduce__(self):
         return (_unreduce, (self._cfg, self.datasetTypeAliasDict))

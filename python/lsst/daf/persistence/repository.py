@@ -33,31 +33,7 @@ from lsst.daf.persistence import Access, Policy, Mapper, LogicalLocation, Butler
 
 import yaml
 
-class RepositoryCfg(Policy, yaml.YAMLObject):
-    yaml_tag = u"!RepositoryCfg"
-    yaml_loader = yaml.Loader
-    yaml_dumper = yaml.Dumper
-
-    def __init__(self, cls, id=None, accessCfg=None, parentCfgs=(), parentJoin='left', peerCfgs=(), mapper=None,
-                 mapperArgs=None):
-        super(RepositoryCfg, self).__init__()
-        if not hasattr(parentCfgs, '__iter__'):
-            parentCfgs = (parentCfgs,)
-        self.update({'cls':cls, 'id':id, 'accessCfg':accessCfg, 'parentCfgs':parentCfgs,
-                   'parentJoin':parentJoin, 'peerCfgs':peerCfgs, 'mapper':mapper,
-                   'mapperArgs':mapperArgs})
-
-    @staticmethod
-    def to_yaml(dumper, obj):
-        return dumper.represent_mapping(RepositoryCfg.yaml_tag,
-                                        {'cls':obj['cls'], 'id':obj['id'], 'accessCfg':obj['accessCfg'],
-                                         'parentCfgs':obj['parentCfgs'], 'parentJoin':obj['parentJoin'],
-                                         'peerCfgs':obj['peerCfgs'], 'mapper':obj['mapper'],
-                                         'mapperArgs':obj['mapperArgs']})
-    @staticmethod
-    def from_yaml(loader, node):
-        obj = loader.construct_mapping(node)
-        return RepositoryCfg(**obj)
+class RepositoryCfg(Policy):
 
     # todo these load & write methods are coupled to posix storage. need to invent butler mechanism for
     # multiple dispatch and implement it.
@@ -70,7 +46,7 @@ class RepositoryCfg(Policy, yaml.YAMLObject):
             logLoc = LogicalLocation(location, butlerLocation.getAdditionalData())
             with open(logLoc.locString()) as f:
                 cfg = yaml.load(f)
-            cfg['accessCfg.storageCfg.root'] = os.path.dirname(location)
+            cfg['root'] = os.path.dirname(location)
             ret.append(cfg)
         return ret
 
@@ -112,44 +88,8 @@ class Repository(object):
     """
     _supportedParentJoin = ('left', 'outer')
 
-    @classmethod
-    def makeCfg(cls, **kwargs):
-        """
-        Helper func to create a properly formatted Policy to configure a Repository.
-
-        .. warning::
-
-            cfg is 'wet paint' and very likely to change. Use of it in production code other than via the 'old
-            butler' API is strongly discouraged.
-
-
-        :param id: an identifier for this repository. Currently only used for debugging.
-        :param accessCfg: cfg for the Access class
-        :param parentCfgs: a tuple of repo cfgs of parent repositories, in search-priority order.
-        :param parentJoin: behavior specifier for searching parents. must be one of _supportedParentJoin.
-        :param peerCfgs: tuple of repo cfgs of peer repositories.
-        :param mapper: mapper to use with this repo. May be a fully-qualified name
-                       (e.g. lsst.daf.butlerUtils.CameraMapper) to be instantiated, a class instance, or a
-                       class type to be instantiated.
-        :param mapperArgs: a dict of arguments to pass to the Mapper if it is to be instantiated.
-        :return: a properly populated cfg Policy.
-        """
-
-
-        if 'parentJoin' in kwargs and kwargs['parentJoin'] not in Repository._supportedParentJoin:
-            raise RuntimeError('Repository.cfg parentJoin:%s not supported, must be one of:'
-                               % (parentJoin, Repository._supportedParentJoin))
-
-        for key in kwargs.keys():
-            if key in kwargs:
-                if hasattr(kwargs[key], 'makeCfg'):
-                    kwargs[key] = kwargs[key].makeCfg(**kwargs)
-
-        return RepositoryCfg(cls=cls, **kwargs)
-
-
     @staticmethod
-    def makeFromCfg(repoCfg):
+    def makeFromCfg(cfg):
         '''Instantiate a Repository from a configuration.
         In come cases the repoCfg may have already been instantiated into a Repository, this is allowed and
         the input var is simply returned.
@@ -164,93 +104,85 @@ class Repository(object):
                         Repository.cfg()
         :return: a Repository instance
         '''
-        if isinstance(repoCfg, Policy):
-            return repoCfg['cls'](repoCfg)
-        return repoCfg
+        # if the cfg has already been instantiated then don't worry, just use it.
+        if not isinstance(cfg, dict):
+            return cfg
+
+        args = {}
+
+        if 'access' in cfg:
+            if cfg['access'] is not None:
+                cfg['access'] = cfg['access'].makeFromCfg(cfg)
+            args['access'] = cfg['access']
+
+        if 'mapper' in cfg:
+            if cfg['mapper'] is None and cfg['access'] is not None:
+                cfg['mapper'] = cfg['access'].mapperClass()
+            if cfg['mapper'] is not None:
+                cfg['mapper'] = cfg['mapper'].makeFromCfg(cfg)
+            args['mapper'] = cfg['mapper']
+
+        if 'parents' in cfg:
+            if not hasattr(cfg['parents'], '__iter__') or isinstance(cfg['parents'], dict):
+                cfg['parents'] = [cfg['parents'],]
+            if not hasattr(cfg['parents'], '__setitem__'):
+                cfg['parents'] = list(cfg['parents'])
+            for i in xrange(len(cfg['parents'])):
+                cfg['parents'][i] = Repository.makeFromCfg(cfg['parents'][i])
+            args['parents'] = cfg['parents']
+
+        if 'peers' in cfg:
+            if not hasattr(cfg['peers'], '__iter__') or isinstance(cfg['peers'], dict):
+                cfg['peers'] = [cfg['peers'],]
+            if not hasattr(cfg['peers'], '__setitem__'):
+                cfg['peers'] = list(cfg['peers'])
+            for i in xrange(len(cfg['peers'])):
+                cfg['peers'][i] = Repository.makeFromCfg(cfg['peers'][i])
+            args['peers'] = cfg['peers']
+
+        if 'parentJoin' in cfg:
+            args['parentJoin'] = cfg['parentJoin']
+
+        if 'id' in cfg:
+            args['id'] = cfg['id']
+
+        if isinstance(cfg['repository'], str):
+            # todo import the string
+            raise NotImplemented("Need to handle importing repository from string")
+        if inspect.isclass(cfg['repository']):
+            cfg['repository'] = cfg['repository'](**args)
+        return cfg['repository']
 
 
-    def __init__(self, cfg):
+    def __init__(self, mapper=None, access=None, parents=None, peers=None, id=None, parentJoin='left'):
         '''Initialize a Repository with parameters input via config.
 
         :param cfg: It is recommended that this config be created by calling Repository.cfg(...) to ensure all
                     the required keys are set.
         :return:
         '''
-        self.cfg = cfg
-        self._access = Access(self.cfg['accessCfg']) if self.cfg['accessCfg'] is not None else None
-        self._parentJoin = self.cfg['parentJoin']
-        if not self._parentJoin in Repository._supportedParentJoin:
+        if not parentJoin in Repository._supportedParentJoin:
             raise RuntimeError('Repository.__init__ parentJoin:%s not supported, must be one of:'
                                % (self._parentJoin, Repository._supportedParentJoin))
-        self._parents = []
-        parentCfgs = self.cfg['parentCfgs']
-        if not hasattr(parentCfgs, '__iter__'):
-            parentCfgs = (parentCfgs,)
-        for parentCfg in parentCfgs:
-            self._parents.append(Repository.makeFromCfg(parentCfg))
-        self._peers = []
-        for peerCfg in self.cfg['peerCfgs']:
-            self._peers.append(Repository.makeFromCfg(peerCfg))
-        self._id = self.cfg['id']
 
-        self._initMapper(cfg)
-
-    def _initMapper(self, repoCfg):
-        '''Initialize and keep the mapper in a member var.
-
-        :param repoCfg:
-        :return:
-        '''
-
-        # rule: If mapper is:
-        # - a policy: instantiate it via the policy
-        # - an object: use it as the mapper.
-        # - a string: import it and instantiate it with mapperArgs
-        # - None: look for the mapper named in 'access' and use that string as in item 2.
-        mapper = repoCfg['mapper']
-        if mapper is None:
-            if self._access is not None:
-                mapper = self._access.mapperClass()
-            if mapper is None:
-                self._mapper = None
-                return None
-        # if mapper is a cfg (IE an instance of the badly-named Policy class), instantiate via the cfg.
-        if isinstance(mapper, Policy):
-            # code at this location that knows that the mapper needs to share the repo's access instance is
-            # not ideal IMO. Not sure how to rectify in a good way.
-            if mapper['access'] is None:
-                #mapper = copy.copy(mapper)
-                mapper['access'] = self._access
-            mapper = Mapper.Mapper(mapper)
-        # if mapper is a string, import it:
-        if isinstance(mapper, basestring):
-            mapper = __import__(mapper)
-        # now if mapper is a class type (not instance), instantiate it:
-        if inspect.isclass(mapper):
-            # cameraMapper requires root which is not ideal. it should be accessing objects via storage.
-            # cameraMapper and other existing mappers (hscMapper) will require much refactoring to support this.
-            args = inspect.getargspec(mapper.__init__)
-            useRootKeyword = not 'cfg' in args.args
-            if not useRootKeyword:
-                try:
-                    # try new style init first; pass cfg to mapper
-                    mapper = mapper(cfg=repoCfg['mapperCfg'])
-                except TypeError:
-                    # try again, using old style cfg: using mapperArgs and root keywords
-                    useRootKeyword = True
-            if useRootKeyword:
-                mapperArgs = copy.copy(repoCfg['mapperArgs'])
-                if mapperArgs is None:
-                    mapperArgs = {}
-                if 'root' not in mapperArgs:
-                    mapperArgs['root'] = self._access.root()
-                mapper = mapper(**mapperArgs)
+        self._access = access
+        self._parentJoin = parentJoin
+        if parents is None:
+            parents = ()
+        self._parents = parents
+        if peers is None:
+            peers = ()
+        self._peers = peers
+        self._id = id
         self._mapper = mapper
 
 
-        def __repr__(self):
+    def __repr__(self):
+        try:
             return 'config(id=%s, accessCfg=%s, parent=%s, mapper=%s, mapperArgs=%s, cls=%s)' % \
                    (self.id, self.accessCfg, self.parent, self.mapper, self.mapperArgs, self.cls)
+        except AttributeError:
+            return "Uninitialized Repository"
 
     @staticmethod
     def loadCfg(accessCfg):
@@ -294,8 +226,8 @@ class Repository(object):
                 ret.extend(res)
             except TypeError:
                 ret.append(res)
-        for child in self._peers:
-            res = func(child, *args, **kwargs)
+        for peer in self._peers:
+            res = func(peer, *args, **kwargs)
             if res is not None:
                 try:
                     ret.extend(res)

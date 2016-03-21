@@ -25,65 +25,39 @@
 import copy
 import cPickle
 import importlib
+import inspect
 import os
 
 import yaml
 
-from lsst.daf.persistence import LogicalLocation, Persistence, Policy, StorageList, Registry
+from lsst.daf.persistence import LogicalLocation, Persistence, Policy, StorageList, Registry, CfgHelper
 import lsst.pex.logging as pexLog
 import lsst.pex.policy as pexPolicy
 from .safeFileIo import SafeFilename
 
-class StorageCfg(Policy):
-    yaml_tag = u"!StorageCfg"
-    yaml_loader = yaml.Loader
-    yaml_dumper = yaml.Dumper
-
-    def __init__(self, cls, root=None):
-        super(StorageCfg, self).__init__()
-        self.update({'root':root, 'cls':cls})
-
-    @staticmethod
-    def to_yaml(dumper, obj):
-        return dumper.represent_mapping(StorageCfg.yaml_tag, {'cls':obj['cls']})
-
-    @staticmethod
-    def from_yaml(loader, node):
-        obj = loader.construct_mapping(node)
-        return StorageCfg(**obj)
-
-
 class PosixStorage(object):
 
-#     @classmethod
-#     def cfg(cls, root=None):
-#         """Helper func to create a properly formatted Policy to configure a PosixStorage instance.
-#
-#         :param root: a posix path where the repository is or should be created.
-#         :return:
-#         """
-#         return StorageCfg(root=root, cls=cls)
-
-    def makeCfg(cls, **kwargs):
-        kwargsToPassOn = copy.copy(kwargs)
-        del kwargsToPassOn['storage']
-        for key in kwargs.keys():
-            if key is not 'storage':
-                if key in kwargs:
-                    if hasattr(kwargs[key], 'makeCfg'):
-                            kwargs[key] = kwargs[key].makeCfg(**kwargsToPassOn)
-        return StorageCfg(cls=cls, **kwargs)
+    @staticmethod
+    def makeFromCfg(cfg):
+        if isinstance(cfg['storage'], str):
+            # todo import the string
+            raise NotImplemented("Need to handle importing storage from string")
+        if inspect.isclass(cfg['storage']):
+            initArgs = CfgHelper.getFuncArgs(cfg['storage'].__init__, cfg)
+            cfg['storage'] = cfg['storage'](**initArgs)
+        return cfg['storage']
 
 
-    def __init__(self, cfg):
-        """Initializer
+    def __init__(self, root=None):
+        """Initializer for PosixStorage
 
-        :param cfg: a Policy that defines the configuration for this class. It is recommended that the cfg be
-                    created by calling PosixStorage.cfg()
-        :return:
+        Parameters
+        ----------
+        root : string, optional
+               Path to the root of the repository. If none, assumes path will be determined.
         """
         self.log = pexLog.Log(pexLog.Log.getDefaultLog(), "daf.persistence.butler")
-        self.root = cfg['root']
+        self.root = root
         if self.root and not os.path.exists(self.root):
             os.makedirs(self.root)
 
@@ -131,6 +105,8 @@ class PosixStorage(object):
 
     def mapperClass(self):
         """Get the class object for the mapper specified in the stored repository"""
+        if self.root is None:
+            raise RuntimeError("Root must be specified before PosixRegistry can be used")
         return PosixStorage.getMapperClass(self.root)
 
     def setCfg(self, repoCfg):
@@ -140,7 +116,7 @@ class PosixStorage(object):
         :return: None
         """
         if self.root is None:
-            raise RuntimeError("Storage root was declared to be None.")
+            raise RuntimeError("Root must be specified before PosixRegistry can be used")
         path = os.path.join(self.root, 'repoCfg.yaml')
         repoCfg.dumpToFile(path)
 
@@ -149,8 +125,8 @@ class PosixStorage(object):
 
         :return: the Policy cfg
         """
-        if not self.root:
-            raise RuntimeError("Storage root was declared to be None.")
+        if self.root is None:
+            raise RuntimeError("Root must be specified before PosixRegistry can be used")
         path = os.path.join(self.root, 'repoCfg.yaml')
         return Policy(filePath=path)
 
@@ -286,6 +262,8 @@ class PosixStorage(object):
         :param location:
         :return:
         """
+        if self.root is None:
+            raise RuntimeError("Root must be specified before PosixRegistry can be used")
         return os.path.exists(os.path.join(self.root, location))
 
     def locationWithRoot(self, location):
@@ -294,6 +272,8 @@ class PosixStorage(object):
         :param location:
         :return:
         """
+        if self.root is None:
+            raise RuntimeError("Root must be specified before PosixRegistry can be used")
         return os.path.join(self.root, location)
 
     def lookup(self, *args, **kwargs):
