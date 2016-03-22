@@ -144,15 +144,9 @@ class PosixStorage(object):
         locations = butlerLocation.getLocations()
 
         pythonType = butlerLocation.getPythonType()
-        if pythonType is not None:
-            if isinstance(pythonType, basestring):
-                # import this pythonType dynamically
-                pythonTypeTokenList = pythonType.split('.')
-                importClassString = pythonTypeTokenList.pop()
-                importClassString = importClassString.strip()
-                importPackage = ".".join(pythonTypeTokenList)
-                importType = __import__(importPackage, globals(), locals(), [importClassString], -1)
-                pythonType = getattr(importType, importClassString)
+        if pythonType is not None and isinstance(pythonType, basestring):
+            pythonType = CfgHelper.getModule(pythonType)
+
         # todo this effectively defines the butler posix "do serialize" command to be named "put". This has
         # implications; write now I'm worried that any python type that can be written to disk and has a method
         # called 'put' will be called here (even if it's e.g. destined for FitsStorage). We might want a somewhat

@@ -117,14 +117,14 @@ class ReposInButler(unittest.TestCase):
         repoOfRepoCfg = {'access':dp.Access,
                          'storage':dp.PosixStorage,
                          'root':'tests/repoOfRepos',
-                         'repository':dp.Repository,
+                         'repository':'lsst.daf.persistence.Repository', # note, this tests importing from string
                          'mapper':dp.RepositoryMapper,
                          'policy':repoMapperPolicy,
-                         'parents':{'repository':dp.Repository,
-                                    'storage':dp.PosixStorage,
+                         'parents':{'repository':'lsst.daf.persistence.Repository',
+                                    'storage':'lsst.daf.persistence.PosixStorage',
                                     'root':'tests/repoOfRepos',
-                                    'access':dp.Access,
-                                    'mapper':dp.RepositoryMapper,
+                                    'access':'lsst.daf.persistence.Access',
+                                    'mapper':'lsst.daf.persistence.RepositoryMapper',
                                     'policy':repoMapperPolicy}}
         repoButler = dp.Butler(repoOfRepoCfg)
         # create a cfg of a repository we'd like to use. Note that we don't create the root of the cfg.
@@ -137,7 +137,7 @@ class ReposInButler(unittest.TestCase):
         repoButler.put(repoCfg, 'cfg', dataId={'version':123})
 
         # get the cfg back out of the butler. This will return a cfg with the root location populated.
-        # i.e. repoCfg['accessCfg.storageCfg.root'] is populated.
+        # i.e. repoCfg['root'] will be populated.
         repoCfg = repoButler.get('cfg', dataId={'version':123}, immediate=True)
         putButler = dp.Butler(repoCfg)
 

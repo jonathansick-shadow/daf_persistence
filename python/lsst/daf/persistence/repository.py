@@ -29,7 +29,7 @@ import itertools
 import os
 import uuid
 
-from lsst.daf.persistence import Access, Policy, Mapper, LogicalLocation, ButlerLocation
+from lsst.daf.persistence import Access, Policy, Mapper, LogicalLocation, ButlerLocation, CfgHelper
 
 import yaml
 
@@ -112,6 +112,8 @@ class Repository(object):
 
         if 'access' in cfg:
             if cfg['access'] is not None:
+                if isinstance(cfg['access'], basestring):
+                    cfg['access'] = CfgHelper.getModule(cfg['access'])
                 cfg['access'] = cfg['access'].makeFromCfg(cfg)
             args['access'] = cfg['access']
 
@@ -119,6 +121,8 @@ class Repository(object):
             if cfg['mapper'] is None and cfg['access'] is not None:
                 cfg['mapper'] = cfg['access'].mapperClass()
             if cfg['mapper'] is not None:
+                if isinstance(cfg['mapper'], basestring):
+                    cfg['mapper'] = CfgHelper.getModule(cfg['mapper'])
                 cfg['mapper'] = cfg['mapper'].makeFromCfg(cfg)
             args['mapper'] = cfg['mapper']
 
@@ -128,6 +132,8 @@ class Repository(object):
             if not hasattr(cfg['parents'], '__setitem__'):
                 cfg['parents'] = list(cfg['parents'])
             for i in xrange(len(cfg['parents'])):
+                if isinstance(cfg['parents'][i], basestring):
+                    cfg['parents'] = CfgHelper.getModule(cfg['parents'][i])
                 cfg['parents'][i] = Repository.makeFromCfg(cfg['parents'][i])
             args['parents'] = cfg['parents']
 
@@ -137,6 +143,8 @@ class Repository(object):
             if not hasattr(cfg['peers'], '__setitem__'):
                 cfg['peers'] = list(cfg['peers'])
             for i in xrange(len(cfg['peers'])):
+                if isinstance(cfg['peers'][i], basestring):
+                    cfg['peers'] = CfgHelper.getModule(cfg['peers'][i])
                 cfg['peers'][i] = Repository.makeFromCfg(cfg['peers'][i])
             args['peers'] = cfg['peers']
 
@@ -146,9 +154,8 @@ class Repository(object):
         if 'id' in cfg:
             args['id'] = cfg['id']
 
-        if isinstance(cfg['repository'], str):
-            # todo import the string
-            raise NotImplemented("Need to handle importing repository from string")
+        if isinstance(cfg['repository'], basestring):
+            cfg['repository'] = CfgHelper.getModule(cfg['repository'])
         if inspect.isclass(cfg['repository']):
             cfg['repository'] = cfg['repository'](**args)
         return cfg['repository']
@@ -179,8 +186,8 @@ class Repository(object):
 
     def __repr__(self):
         try:
-            return 'config(id=%s, accessCfg=%s, parent=%s, mapper=%s, mapperArgs=%s, cls=%s)' % \
-                   (self.id, self.accessCfg, self.parent, self.mapper, self.mapperArgs, self.cls)
+            return 'Repository(id=%s, access=%s, parents=%s, peers=%s, mapper=%s, parentJoin=%s)' % \
+                   (self._id, self._access, self._parents, self._peers, self._mapper, self._parentJoin)
         except AttributeError:
             return "Uninitialized Repository"
 

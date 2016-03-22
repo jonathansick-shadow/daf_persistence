@@ -39,7 +39,7 @@ import yaml
 import lsst.pex.logging as pexLog
 import lsst.pex.policy as pexPolicy
 from lsst.daf.persistence import StorageList, LogicalLocation, ReadProxy, ButlerSubset, ButlerDataRef, \
-    Persistence, Repository, Access, PosixStorage, Policy, NoResults, MultipleResults
+    Persistence, Repository, Access, PosixStorage, Policy, NoResults, MultipleResults, CfgHelper
 
 
 class ButlerCfg(Policy, yaml.YAMLObject):
@@ -148,6 +148,8 @@ class Butler(object):
         cfg = copy.deepcopy(cfg)
         self.datasetTypeAliasDict = {}
 
+        if isinstance(cfg['repository'], basestring):
+            cfg['repository'] = CfgHelper.getModule(cfg['repository'])
         self.repository = cfg['repository'].makeFromCfg(cfg)
 
         # Always use an empty Persistence policy until we can get rid of it
@@ -336,15 +338,8 @@ class Butler(object):
         if hasattr(location.mapper, "bypass_" + datasetType):
             # this type loader block should get moved into a helper someplace, and duplciations removed.
             pythonType = location.getPythonType()
-            if pythonType is not None:
-                if isinstance(pythonType, basestring):
-                    # import this pythonType dynamically
-                    pythonTypeTokenList = location.getPythonType().split('.')
-                    importClassString = pythonTypeTokenList.pop()
-                    importClassString = importClassString.strip()
-                    importPackage = ".".join(pythonTypeTokenList)
-                    importType = __import__(importPackage, globals(), locals(), [importClassString], -1)
-                    pythonType = getattr(importType, importClassString)
+            if pythonType is not None and isinstance(pythonType, basestring):
+                pythonType = CfgHelper.getModule(pythonType)
             bypassFunc = getattr(location.mapper, "bypass_" + datasetType)
             callback = lambda: bypassFunc(datasetType, pythonType, location, dataId)
         else:

@@ -241,16 +241,16 @@ class TestWriting(unittest.TestCase):
         :return:
         """
 
-        repoACfg = {'repository':dp.Repository,
-                    'storage':dp.PosixStorage,
+        repoACfg = {'repository':'lsst.daf.persistence.Repository',
+                    'storage':'lsst.daf.persistence.PosixStorage',
                     'mapper':MapperForTestWriting,
                     'root':'tests/repository/repoA',
-                    'access':dp.Access}
-        repoBCfg = {'repository':dp.Repository,
-                    'storage':dp.PosixStorage,
+                    'access':'lsst.daf.persistence.Access'}
+        repoBCfg = {'repository':'lsst.daf.persistence.Repository',
+                    'storage':'lsst.daf.persistence.PosixStorage',
                     'mapper':MapperForTestWriting,
                     'root':'tests/repository/repoB',
-                    'access':dp.Access,
+                    'access':'lsst.daf.persistence.Access',
                     'peers':repoACfg}
         butlerAB = dp.Butler(repoBCfg)
         objA = TestObject('abc')

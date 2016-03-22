@@ -28,7 +28,7 @@ import collections
 import inspect
 import os
 
-from lsst.daf.persistence import Policy
+from lsst.daf.persistence import Policy, CfgHelper
 
 import yaml
 
@@ -44,13 +44,13 @@ class Access:
 
     @staticmethod
     def makeFromCfg(cfg):
+        if isinstance(cfg['storage'], basestring):
+            cfg['storage'] = CfgHelper.getModule(cfg['storage'])
         cfg['storage'] = cfg['storage'].makeFromCfg(cfg)
 
-        if isinstance(cfg['access'], str):
-            # todo import the string
-            raise NotImplemented("Need to handle importing access from string")
         if inspect.isclass(cfg['access']):
-            cfg['access'] = cfg['access'](storage=cfg['storage'])
+            args = CfgHelper.getFuncArgs(cfg['access'].__init__, cfg)
+            cfg['access'] = cfg['access'](**args)
         return cfg['access']
 
     def __init__(self, storage):

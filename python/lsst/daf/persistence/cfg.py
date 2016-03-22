@@ -64,3 +64,16 @@ class CfgHelper(object):
             elif arg in requiredArgs:
                 raise RuntimeError("Missing argument:%s from cfg, can't get all arguments to call %s" % (arg, func))
         return ret
+
+    @staticmethod
+    def getModule(pythonType):
+        if not isinstance(pythonType, basestring):
+            raise RuntimeError("get_module requires a string argument, got:%s" % pythonType)
+        # import this pythonType dynamically
+        pythonTypeTokenList = pythonType.split('.')
+        importClassString = pythonTypeTokenList.pop()
+        importClassString = importClassString.strip()
+        importPackage = ".".join(pythonTypeTokenList)
+        importType = __import__(importPackage, globals(), locals(), [importClassString], -1)
+        pythonType = getattr(importType, importClassString)
+        return pythonType
