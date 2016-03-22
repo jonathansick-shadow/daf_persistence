@@ -80,9 +80,6 @@ class Mapper(object):
         mapper = cfg['mapper'] if 'mapper' in cfg else None
         if mapper is None:
             return None
-        # if mapper is a string, import it:
-        if isinstance(mapper, basestring):
-            mapper = __import__(mapper)
         # now if mapper is a class type (not instance), instantiate it:
         if inspect.isclass(mapper):
             funcArgsToIgnore = CfgHelper.defaultArgsToIgnore
