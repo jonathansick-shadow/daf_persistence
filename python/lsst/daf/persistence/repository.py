@@ -48,10 +48,19 @@ class RepositoryCfg(Policy):
                 cfg = yaml.load(f)
             cfg['root'] = os.path.dirname(location)
             ret.append(cfg)
+            if 'cfgVersion' not in cfg or cfg['cfgVersion'] != (1, 0):
+                raise RuntimeError('Version %s is not supported by RepositoryCfg deserializer' %cfg['cfgVersion'])
+            # In the future, any necessary adaptation can be applied to the cfg here based on version. For now there
+            # is only version 1.0 so there is nothing to do.
+            del cfg['cfgVersion']
         return ret
 
     @staticmethod
     def butlerWrite(obj, butlerLocation):
+        if 'cfgVersion' in obj:
+            raise RuntimeError(
+                "cfgVersion is reserved for use by RepositoryCfg and should not be set in persistable cfg.")
+        obj['cfgVersion'] = (1, 0)
         if butlerLocation.getStorageName() is not "YamlStorage":
             raise NotImplementedError("RepositoryCfg only supports YamlStorage")
         ret = []
