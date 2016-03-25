@@ -292,7 +292,7 @@ class Repository(object):
                     ret.extend(res)
                 except TypeError:
                     ret.append(res)
-        if len(ret) is 0:
+        if len(ret) == 0:
             ret = None
         return ret
 
