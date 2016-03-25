@@ -315,6 +315,7 @@ class SqliteRegistry(Registry):
                     valueList.append(v)
             cmd += " WHERE " + " AND ".join(whereList)
         c = self.conn.execute(cmd, valueList)
+
         result = []
         for row in c:
             result.append(row)
