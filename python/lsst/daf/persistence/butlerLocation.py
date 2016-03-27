@@ -30,7 +30,6 @@ import lsst.daf.base as dafBase
 import yaml
 
 
-
 class ButlerLocation(yaml.YAMLObject):
     """ButlerLocation is a struct-like class that holds information needed to
     persist and retrieve an object using the LSST Persistence Framework.
@@ -44,8 +43,8 @@ class ButlerLocation(yaml.YAMLObject):
 
     def __repr__(self):
         return \
-        'ButlerLocation(pythonType=%r, cppType=%r, storageName=%r, locationList=%r, additionalData=%r, mapper=%r)' % \
-        (self.pythonType, self.cppType, self.storageName, self.locationList, self.additionalData, self.mapper)
+            'ButlerLocation(pythonType=%r, cppType=%r, storageName=%r, locationList=%r, additionalData=%r, mapper=%r)' % \
+            (self.pythonType, self.cppType, self.storageName, self.locationList, self.additionalData, self.mapper)
 
     def __init__(self, pythonType, cppType, storageName, locationList, dataId, mapper, access=None):
         self.pythonType = pythonType
@@ -60,11 +59,11 @@ class ButlerLocation(yaml.YAMLObject):
         self.additionalData = dafBase.PropertySet()
         for k, v in dataId.iteritems():
             self.additionalData.set(k, v)
-        self.dataId=dataId
+        self.dataId = dataId
 
     def __str__(self):
         s = "%s at %s(%s)" % (self.pythonType, self.storageName,
-                ", ".join(self.locationList))
+                              ", ".join(self.locationList))
         return s
 
     @staticmethod
@@ -75,8 +74,8 @@ class ButlerLocation(yaml.YAMLObject):
         :return:
         """
         return dumper.represent_mapping(ButlerLocation.yaml_tag,
-            {'pythonType':obj.pythonType, 'cppType':obj.cppType, 'storageName':obj.storageName,
-             'locationList':obj.locationList, 'mapper':obj.mapper, 'access':obj.access, 'dataId':obj.dataId})
+                                        {'pythonType': obj.pythonType, 'cppType': obj.cppType, 'storageName': obj.storageName,
+                                         'locationList': obj.locationList, 'mapper': obj.mapper, 'access': obj.access, 'dataId': obj.dataId})
 
     @staticmethod
     def from_yaml(loader, node):

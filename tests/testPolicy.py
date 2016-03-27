@@ -35,23 +35,23 @@ class PolicyTestCase(unittest.TestCase):
     def setUp(self):
         self.policy = Policy(
             data={'body': {'job': {'position': 'Developer', 'company': 'Microsoft'}, 'name': 'John'},
-                           'error': False})
+                  'error': False})
 
     def testBasic(self):
         p = Policy()
-        p['a'] = {1:2}
-        self.assertEqual(p, {'a':{1:2}})
-        p.update({'a':{3:4}})
-        self.assertEqual(p, {'a':{1:2, 3:4}})
+        p['a'] = {1: 2}
+        self.assertEqual(p, {'a': {1: 2}})
+        p.update({'a': {3: 4}})
+        self.assertEqual(p, {'a': {1: 2, 3: 4}})
 
     def testUpdateWithDict(self):
         self.policy.update({'body': {'job': {'position': 'Manager'}}})
         self.assertEqual(self.policy['body'],
                          {'job': {'position': 'Manager', 'company': 'Microsoft'}, 'name': 'John'})
-        self.policy.update({'body': {'name': {'first':'John', 'last':'Smith'}}})
+        self.policy.update({'body': {'name': {'first': 'John', 'last': 'Smith'}}})
         self.assertEqual(self.policy['body'],
                          {'job': {'position': 'Manager', 'company': 'Microsoft'},
-                          'name': {'first':'John', 'last':'Smith'}})
+                          'name': {'first': 'John', 'last': 'Smith'}})
 
     def testUpdateWithPolicy(self):
         p1 = Policy(data={'body': {'job': {'position': 'Manager'}}})
@@ -90,7 +90,7 @@ class PolicyTestCase(unittest.TestCase):
     def testGetPolicy(self):
         policy = self.policy['body']
         self.assertEqual(policy, {'job': {'position': 'Developer', 'company': 'Microsoft'}, 'name': 'John'})
-        self.assertEqual(policy['job.position'], 'Developer') # note: verifies dot naming
+        self.assertEqual(policy['job.position'], 'Developer')  # note: verifies dot naming
         self.assertTrue(isinstance(policy, Policy))
 
     def testDotsInBraces(self):
@@ -125,6 +125,7 @@ class PolicyTestCase(unittest.TestCase):
         self.assertRaises(IOError, Policy, filePath="c:/policy.paf")
         self.assertRaises(IOError, Policy, filePath="c:/policy")
 
+
 def suite():
     utilsTests.init()
 
@@ -132,6 +133,7 @@ def suite():
     suites += unittest.makeSuite(PolicyTestCase)
     suites += unittest.makeSuite(utilsTests.MemoryTestCase)
     return unittest.TestSuite(suites)
+
 
 def run(shouldExit = False):
     utilsTests.run(suite(), shouldExit)

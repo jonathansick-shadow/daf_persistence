@@ -35,11 +35,12 @@ import lsst.daf.persistence as dp
 
 
 class PosixPickleStringHanlder:
+
     @staticmethod
     def get(butlerLocation):
         if butlerLocation.storageName != "PickleStorage":
             raise TypeError("PosixStoragePickleMapper only supports PickleStorage")
-        location = butlerLocation.getLocations()[0] # should never be more than 1 location
+        location = butlerLocation.getLocations()[0]  # should never be more than 1 location
         with open(location, 'r') as f:
             ret = cPickle.load(f)
         return ret
@@ -56,12 +57,16 @@ class PosixPickleStringHanlder:
 # Object Mapper #
 #################
 
+
 class TestMapperCfg(dp.Policy, yaml.YAMLObject):
     yaml_tag = u"!TestMapperCfg"
+
     def __init__(self, cls, root):
-        super(TestMapperCfg, self).__init__({'root':root, 'cls':cls})
+        super(TestMapperCfg, self).__init__({'root': root, 'cls': cls})
+
 
 class TestMapper(dp.Mapper):
+
     @classmethod
     def cfg(cls, root=None):
         return TestMapperCfg(cls=cls, root=root)
@@ -89,7 +94,6 @@ class TestMapper(dp.Mapper):
 #####################
 # Repository Mapper #
 #####################
-
 
 
 class RepoDateMapper(dp.RepositoryMapper):
@@ -154,7 +158,8 @@ class RepoDateMapper(dp.RepositoryMapper):
             lookups.append((datetime.date(datetime.MAXYEAR, 12, 31).strftime("%Y-%m-%d"),))
             for lookup in lookups:
                 prev = item
-                # we only look for 1 key so lookups ends up being a list of lists that contain 1 item, so grab lookup[0]
+                # we only look for 1 key so lookups ends up being a list of lists that
+                # contain 1 item, so grab lookup[0]
                 item = datetime.datetime.strptime(lookup[0], "%Y-%m-%d").date()
                 if prev <= dataIdDate and dataIdDate < item:
                     dateToUse = prev
@@ -172,6 +177,7 @@ class RepoDateMapper(dp.RepositoryMapper):
 ########
 # Test #
 ########
+
 
 class RepoFindByDate(unittest.TestCase):
 
@@ -196,21 +202,23 @@ class RepoFindByDate(unittest.TestCase):
                 mapperCfg = dp.RepositoryMapper.cfg(policy=self.repoMapperPolicy)
                 # Note that right now a repo is either input OR output, there is no input-output repo, this design
                 # is result of butler design conversations. Right now, if a user wants to write to and then read from
-                # a repo, a repo can have a parent repo with the same access (and mapper) parameters as itself.
+                # a repo, a repo can have a parent repo with the same access (and mapper)
+                # parameters as itself.
                 repoOfRepoCfg = dp.Repository.cfg(accessCfg=accessCfg, mapper=mapperCfg,
                                                   parentCfgs=dp.Repository.cfg(accessCfg=accessCfg, mapper=mapperCfg))
                 repoButler = dp.Butler(dp.Butler.cfg(repoCfg=repoOfRepoCfg))
                 # create a cfg of a repository we'd like to use. Note that we don't create the root of the cfg.
                 # this will get populated by the repoOfRepos template.
-                repoCfg = dp.Repository.cfg(accessCfg=dp.Access.cfg(dp.PosixStorage.cfg()), mapper=TestMapper.cfg())
+                repoCfg = dp.Repository.cfg(accessCfg=dp.Access.cfg(
+                    dp.PosixStorage.cfg()), mapper=TestMapper.cfg())
                 # and put that config into the repoOfRepos.
-                repoButler.put(repoCfg, 'cfg', dataId={'type':type, 'date':date})
+                repoButler.put(repoCfg, 'cfg', dataId={'type': type, 'date': date})
                 # get the cfg back out of the butler. This will return a cfg with the root location populated.
                 # i.e. repoCfg['accessCfg.storageCfg.root'] is populated.
-                repoCfg = repoButler.get('cfg', dataId={'type':type, 'date':date}, immediate=True)
+                repoCfg = repoButler.get('cfg', dataId={'type': type, 'date': date}, immediate=True)
                 butler = dp.Butler(dp.Butler.cfg(repoCfg=repoCfg))
-                obj = date + '_' + type # object contents do not rely on date & type, but it's an easy way to verify
-                butler.put(obj, 'str', {'ccdNum':1})
+                obj = date + '_' + type  # object contents do not rely on date & type, but it's an easy way to verify
+                butler.put(obj, 'str', {'ccdNum': 1})
 
     def test(self):
         # create some objects that will be used when creating repositories AND when finding the created ones:
@@ -248,9 +256,9 @@ class RepoFindByDate(unittest.TestCase):
 
         for date in dates:
             for type in types:
-                repoCfg = repoButler.get('cfg', dataId={'type':type, 'date':date.searchVal}, immediate=True)
+                repoCfg = repoButler.get('cfg', dataId={'type': type, 'date': date.searchVal}, immediate=True)
                 butler = dp.Butler(dp.Butler.cfg(repoCfg=dp.Repository.cfg(parentCfgs=repoCfg)))
-                obj = butler.get('str', {'ccdNum':1})
+                obj = butler.get('str', {'ccdNum': 1})
                 verificationDate = date.expectedVal + '_' + type
                 self.assertEqual(obj, verificationDate)
 
@@ -260,6 +268,7 @@ def suite():
     suites = []
     suites += unittest.makeSuite(RepoFindByDate)
     return unittest.TestSuite(suites)
+
 
 def run(shouldExit = False):
     utilsTests.run(suite(), shouldExit)

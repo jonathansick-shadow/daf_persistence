@@ -30,10 +30,13 @@ from lsst.daf.persistence import Policy
 
 import yaml
 
+
 class AccessCfg(Policy, yaml.YAMLObject):
     yaml_tag = u"!AccessCfg"
+
     def __init__(self, cls, storageCfg):
-        super(AccessCfg, self).__init__({'storageCfg':storageCfg, 'cls':cls})
+        super(AccessCfg, self).__init__({'storageCfg': storageCfg, 'cls': cls})
+
 
 class Access:
     """Implements an butler framework interface for Transport, Storage, and Registry

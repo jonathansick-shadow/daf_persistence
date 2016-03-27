@@ -45,6 +45,7 @@ except ImportError:
     except ImportError:
         haveSqlite3 = False
 
+
 class Registry(object):
     """The registry base class."""
 
@@ -82,6 +83,7 @@ class Registry(object):
 
         raise RuntimeError("Unable to create registry using location: " + location)
 
+
 class PosixRegistry(Registry):
     """A glob-based filesystem registry"""
 
@@ -100,7 +102,7 @@ class PosixRegistry(Registry):
         :return: the HDU specified by the template+dataId pair, or None if the
         HDU can not be determined.
         """
-        #sanity check that the template at least ends with a brace.
+        # sanity check that the template at least ends with a brace.
         if not template.endswith(']'):
             return None
 
@@ -114,6 +116,7 @@ class PosixRegistry(Registry):
         return None
 
     class LookupData:
+
         def __init__(self, lookupProperties, dataId):
             self.dataId = copy.copy(dataId)
             if not hasattr(lookupProperties, '__iter__'):
@@ -195,7 +198,7 @@ class PosixRegistry(Registry):
         lookupData = PosixRegistry.LookupData(lookupProperties, dataId)
         scanner = fsScanner.FsScanner(template)
         allPaths = scanner.processPath(self.root)
-        retItems = [] # one item for each found file that matches
+        retItems = []  # one item for each found file that matches
         for path, foundProperties in allPaths.items():
             # check for dataId keys that are not present in found properties
             # search for those keys in metadata of file at path
@@ -235,7 +238,7 @@ class PosixRegistry(Registry):
         try:
             hdulist = pyfits.open(filepath, memmap=True)
         except IOError:
-            return;
+            return
         hduNumber = PosixRegistry.getHduNumber(template=template, dataId=dataId)
         if hduNumber != None and hduNumber < len(hdulist):
             hdu = hdulist[hduNumber]
@@ -308,10 +311,10 @@ class SqliteRegistry(Registry):
                 if hasattr(k, '__iter__'):
                     if len(k) is not 2:
                         raise RuntimeError("Wrong number of keys for range:%s" % (k,))
-                    whereList.append("(? BETWEEN %s AND %s)" %(k[0], k[1]))
+                    whereList.append("(? BETWEEN %s AND %s)" % (k[0], k[1]))
                     valueList.append(v)
                 else:
-                    whereList.append("%s = ?" %k)
+                    whereList.append("%s = ?" % k)
                     valueList.append(v)
             cmd += " WHERE " + " AND ".join(whereList)
         c = self.conn.execute(cmd, valueList)

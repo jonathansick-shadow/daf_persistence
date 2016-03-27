@@ -28,6 +28,7 @@ import os
 import tempfile
 from contextlib import contextmanager
 
+
 def safeMakeDir(directory):
     """Make a directory in a manner avoiding race conditions"""
     if directory != "" and not os.path.exists(directory):
@@ -38,6 +39,7 @@ def safeMakeDir(directory):
             if e.errno != errno.EEXIST:
                 raise e
 
+
 def setFileMode(filename):
     """Set a file mode according to the user's umask"""
     # Get the current umask, which we can only do by setting it and then reverting to the original.
@@ -46,6 +48,7 @@ def setFileMode(filename):
     # chmod the new file to match what it would have been if it hadn't started life as a temporary
     # file (which have more restricted permissions).
     os.chmod(filename, (~umask & 0o666))
+
 
 @contextmanager
 def SafeFile(name):
@@ -64,6 +67,7 @@ def SafeFile(name):
             os.rename(temp.name, name)
             setFileMode(name)
 
+
 @contextmanager
 def SafeFilename(name):
     """Context manager for creating a file in a manner avoiding race conditions
@@ -76,7 +80,7 @@ def SafeFilename(name):
     safeMakeDir(outDir)
     temp = tempfile.NamedTemporaryFile(dir=outDir, prefix=outName, delete=False)
     tempName = temp.name
-    temp.close() # We don't use the fd, just want a filename
+    temp.close()  # We don't use the fd, just want a filename
     try:
         yield tempName
     finally:

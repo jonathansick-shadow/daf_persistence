@@ -29,6 +29,7 @@ within it as well as an iterator over the subset."""
 
 from __future__ import with_statement
 
+
 class ButlerSubset(object):
 
     """ButlerSubset is a container for ButlerDataRefs.  It represents a
@@ -121,6 +122,7 @@ class ButlerSubset(object):
 
         return ButlerSubsetIterator(self)
 
+
 class ButlerSubsetIterator(object):
     """
     An iterator over the ButlerDataRefs in a ButlerSubset.
@@ -135,6 +137,7 @@ class ButlerSubsetIterator(object):
 
     def next(self):
         return ButlerDataRef(self.butlerSubset, self.iter.next())
+
 
 class ButlerDataRef(object):
     """
@@ -176,7 +179,7 @@ class ButlerDataRef(object):
         self.dataId = dataId
 
     def __repr__(self):
-        return 'ButlerDataRef(butlerSubset=%s, dataId=%s)' %(self.butlerSubset, self.dataId)
+        return 'ButlerDataRef(butlerSubset=%s, dataId=%s)' % (self.butlerSubset, self.dataId)
 
     def get(self, datasetType=None, **rest):
         """
@@ -217,13 +220,13 @@ class ButlerDataRef(object):
         @returns (iterable)  list of strings with level keys."""
 
         return set(
-                self.butlerSubset.butler.getKeys(
-                    self.butlerSubset.datasetType).keys()
-            ) - set(
-                self.butlerSubset.butler.getKeys(
-                    self.butlerSubset.datasetType,
-                    self.butlerSubset.level).keys()
-            )
+            self.butlerSubset.butler.getKeys(
+                self.butlerSubset.datasetType).keys()
+        ) - set(
+            self.butlerSubset.butler.getKeys(
+                self.butlerSubset.datasetType,
+                self.butlerSubset.level).keys()
+        )
 
     def subItems(self, level=None):
         """
@@ -248,7 +251,7 @@ class ButlerDataRef(object):
             if level is None:
                 return ()
         return self.butlerSubset.butler.subset(self.butlerSubset.datasetType,
-                level, self.dataId)
+                                               level, self.dataId)
 
     def datasetExists(self, datasetType=None, **rest):
         """
@@ -262,7 +265,7 @@ class ButlerDataRef(object):
         if datasetType is None:
             datasetType = self.butlerSubset.datasetType
         return self.butlerSubset.butler.datasetExists(
-                datasetType, self.dataId, **rest)
+            datasetType, self.dataId, **rest)
 
     def getButler(self):
         """

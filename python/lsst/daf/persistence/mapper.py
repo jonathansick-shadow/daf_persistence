@@ -1,4 +1,4 @@
- #!/usr/bin/env python
+#!/usr/bin/env python
 
 #
 # LSST Data Management System
@@ -28,6 +28,7 @@ from lsst.daf.persistence import Policy
 
 """This module defines the Mapper base class."""
 
+
 class MapperCfg(Policy):
     """Represents a mapper configuration.
 
@@ -43,17 +44,18 @@ class MapperCfg(Policy):
 
     def __init__(self, cls, policy, access):
         super(MapperCfg, self).__init__()
-        self.update({'cls':cls, 'policy':policy, 'access':access})
+        self.update({'cls': cls, 'policy': policy, 'access': access})
 
     @staticmethod
     def to_yaml(dumper, obj):
         return dumper.represent_mapping(RepositoryMapperCfg.yaml_tag,
-                                        {'cls':obj['cls'], 'policy':obj['policy'], 'access':obj['access']})
+                                        {'cls': obj['cls'], 'policy': obj['policy'], 'access': obj['access']})
 
     @staticmethod
     def from_yaml(loader, node):
         obj = loader.construct_mapping(node)
         return RepositoryMapperCfg(**obj)
+
 
 class Mapper(object):
     """Mapper is a base class for all mappers.

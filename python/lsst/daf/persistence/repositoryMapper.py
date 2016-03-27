@@ -26,8 +26,10 @@ import yaml
 
 from lsst.daf.persistence import Mapper, Policy, ButlerLocation, MapperCfg
 
+
 class RepositoryMapperCfg(MapperCfg):
     pass
+
 
 class RepositoryMapper(Mapper):
     """"Base class for a mapper to find repository configurations within a butler repository.
@@ -51,7 +53,7 @@ class RepositoryMapper(Mapper):
 
     def __repr__(self):
         if 'policy' in self.__dict__ and 'access' in self.__dict__:
-            return 'RepositoryMapper(policy=%s, access=%s)' %(self.policy, self.access)
+            return 'RepositoryMapper(policy=%s, access=%s)' % (self.policy, self.access)
         else:
             return 'uninitialized RepositoryMapper'
 
@@ -76,7 +78,6 @@ class RepositoryMapper(Mapper):
             dataId = dataId,
             mapper = self)
         return bl
-
 
     def map_repo(self, dataId, write):
         if write is True:

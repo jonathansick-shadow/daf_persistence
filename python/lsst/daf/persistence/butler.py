@@ -41,13 +41,15 @@ import lsst.pex.policy as pexPolicy
 from lsst.daf.persistence import StorageList, LogicalLocation, ReadProxy, ButlerSubset, ButlerDataRef, \
     Persistence, Repository, Access, PosixStorage, Policy, NoResults, MultipleResults
 
+
 def posixRepoCfg(root=None, mapper=None, mapperArgs=None, parentRepoCfgs=[], id=None, parentJoin='left',
                  peerCfgs=[]):
     storageCfg = PosixStorage.cfg(root=root)
     accessCfg = Access.cfg(storageCfg=storageCfg)
     repoCfg = Repository.cfg(id=id, accessCfg=accessCfg, mapper=mapper, mapperArgs=mapperArgs,
-                                        parentCfgs=parentRepoCfgs, parentJoin=parentJoin, peerCfgs=peerCfgs)
+                             parentCfgs=parentRepoCfgs, parentJoin=parentJoin, peerCfgs=peerCfgs)
     return repoCfg
+
 
 class ButlerCfg(Policy, yaml.YAMLObject):
     """Represents a Butler configuration.
@@ -58,8 +60,10 @@ class ButlerCfg(Policy, yaml.YAMLObject):
         API is strongly discouraged.
     """
     yaml_tag = u"!ButlerCfg"
+
     def __init__(self, cls, repoCfg):
-        super(ButlerCfg, self).__init__({'repoCfg':repoCfg, 'cls':cls})
+        super(ButlerCfg, self).__init__({'repoCfg': repoCfg, 'cls': cls})
+
 
 class Butler(object):
     """Butler provides a generic mechanism for persisting and retrieving data using mappers.
@@ -148,7 +152,8 @@ class Butler(object):
             config = root
         else:
             parentCfg = posixRepoCfg(root=root, mapper=mapper, mapperArgs=mapperArgs)
-            repoCfg = posixRepoCfg(root=root, mapper=mapper, mapperArgs=mapperArgs, parentRepoCfgs=(parentCfg,))
+            repoCfg = posixRepoCfg(root=root, mapper=mapper, mapperArgs=mapperArgs,
+                                   parentRepoCfgs=(parentCfg,))
             config = Butler.cfg(repoCfg=repoCfg)
         self._initWithCfg(config)
 
@@ -169,11 +174,9 @@ class Butler(object):
         self.persistence = Persistence.getPersistence(persistencePolicy)
         self.log = pexLog.Log(pexLog.Log.getDefaultLog(), "daf.persistence.butler")
 
-
     def __repr__(self):
         return 'Butler(cfg=%s, datasetTypeAliasDict=%s, repository=%s, persistence=%s)' % (
             self._cfg, self.datasetTypeAliasDict, self.repository, self.persistence)
-
 
     @staticmethod
     def getMapperClass(root):
@@ -184,7 +187,6 @@ class Butler(object):
         moved entirely into Butler Access, or made more dynamic, and the API will very likely change."""
         return PosixStorage.getMapperClass(root)
 
-
     def defineAlias(self, alias, datasetType):
         """Register an alias that will be substituted in datasetTypes.
 
@@ -194,26 +196,25 @@ class Butler(object):
                                  not contain '@'
         """
 
-        #verify formatting of alias:
+        # verify formatting of alias:
         # it can have '@' as the first character (if not it's okay, we will add it) or not at all.
         atLoc = alias.rfind('@')
         if atLoc is -1:
             alias = "@" + str(alias)
         elif atLoc > 0:
-            raise RuntimeError("Badly formatted alias string: %s" %(alias,))
+            raise RuntimeError("Badly formatted alias string: %s" % (alias,))
 
         # verify that datasetType does not contain '@'
         if datasetType.count('@') != 0:
-            raise RuntimeError("Badly formatted type string: %s" %(datasetType))
+            raise RuntimeError("Badly formatted type string: %s" % (datasetType))
 
         # verify that the alias keyword does not start with another alias keyword,
         # and vice versa
         for key in self.datasetTypeAliasDict:
             if key.startswith(alias) or alias.startswith(key):
-                raise RuntimeError("Alias: %s overlaps with existing alias: %s" %(alias, key))
+                raise RuntimeError("Alias: %s overlaps with existing alias: %s" % (alias, key))
 
         self.datasetTypeAliasDict[alias] = datasetType
-
 
     def getKeys(self, datasetType=None, level=None):
         """Returns a dict.  The dict keys are the valid data id keys at or
@@ -230,7 +231,6 @@ class Butler(object):
         """
         datasetType = self._resolveDatasetTypeAlias(datasetType)
         return self.repository.getKeys(datasetType, level)
-
 
     def queryMetadata(self, datasetType, format=None, dataId={}, **rest):
         """Returns the valid values for one or more keys when given a partial
@@ -271,7 +271,6 @@ class Butler(object):
 
         return tuples
 
-
     def datasetExists(self, datasetType, dataId={}, **rest):
         """Determines if a dataset file exists.
 
@@ -290,7 +289,8 @@ class Butler(object):
             return False
         try:
             if len(locations) is not 1:
-                raise RuntimeError("Multiple (or none) locations for datasetExists(%s, %s)" %(datasetType, dataId))
+                raise RuntimeError("Multiple (or none) locations for datasetExists(%s, %s)" %
+                                   (datasetType, dataId))
             location = locations[0]
         except TypeError:
             # locations might not be a list; that's ok.
@@ -299,7 +299,7 @@ class Butler(object):
         additionalData = location.getAdditionalData()
         storageName = location.getStorageName()
         if storageName in ('BoostStorage', 'FitsStorage', 'PafStorage',
-                'PickleStorage', 'ConfigStorage', 'FitsCatalogStorage'):
+                           'PickleStorage', 'ConfigStorage', 'FitsCatalogStorage'):
             locations = location.getLocations()
             for locationString in locations:
                 logLoc = LogicalLocation(locationString, additionalData).locString()
@@ -312,10 +312,9 @@ class Butler(object):
                     return False
             return True
         self.log.log(pexLog.Log.WARN,
-                "datasetExists() for non-file storage %s, dataset type=%s, keys=%s" %
-                (storageName, datasetType, str(dataId)))
+                     "datasetExists() for non-file storage %s, dataset type=%s, keys=%s" %
+                     (storageName, datasetType, str(dataId)))
         return True
-
 
     def get(self, datasetType, dataId={}, immediate=False, **rest):
         """Retrieves a dataset given an input collection data id.
@@ -339,7 +338,7 @@ class Butler(object):
                 raise NoResults("No locations for get:", datasetType, dataId)
             if len(locations) is not 1:
                 raise MultipleResults("Multiple locations for get:", datasetType, dataId,
-                                                       locations)
+                                      locations)
             location = locations[0]
         except TypeError:
             # locations might not be a list; that's ok.
@@ -369,7 +368,6 @@ class Butler(object):
         if immediate:
             return callback()
         return ReadProxy(callback)
-
 
     def put(self, obj, datasetType, dataId={}, doBackup=False, **rest):
         """Persists a dataset given an output collection data id.
@@ -424,7 +422,6 @@ class Butler(object):
         dataId.update(**rest)
         return ButlerSubset(self, datasetType, level, dataId)
 
-
     def dataRef(self, datasetType, level=None, dataId={}, **rest):
         """Returns a single ButlerDataRef.
 
@@ -448,7 +445,6 @@ class Butler(object):
     Data ID = %s
     Keywords = %s""" % (str(datasetType), str(level), str(dataId), str(rest))
         return ButlerDataRef(subset, subset.cache[0])
-
 
     def _read(self, location):
         trace = pexLog.BlockTimingLog(self.log, "read", pexLog.BlockTimingLog.INSTRUM+1)
@@ -475,9 +471,10 @@ class Butler(object):
 
         # If an alias specifier can not be resolved then throw.
         if datasetType.find('@') != -1:
-            raise RuntimeError("Unresolvable alias specifier in datasetType: %s" %(datasetType))
+            raise RuntimeError("Unresolvable alias specifier in datasetType: %s" % (datasetType))
 
         return datasetType
+
 
 def _unreduce(cfg, datasetTypeAliasDict):
     butler = Butler(cfg)

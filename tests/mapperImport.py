@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
-# 
+#
 # LSST Data Management System
 # Copyright 2008, 2009, 2010 LSST Corporation.
-# 
+#
 # This product includes software developed by the
 # LSST Project (http://www.lsst.org/).
 #
@@ -11,14 +11,14 @@
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
-# You should have received a copy of the LSST License Statement and 
-# the GNU General Public License along with this program.  If not, 
+#
+# You should have received a copy of the LSST License Statement and
+# the GNU General Public License along with this program.  If not,
 # see <http://www.lsstcorp.org/LegalNotices/>.
 #
 
@@ -32,6 +32,7 @@ import lsst.utils.tests as utilsTests
 import lsst.daf.persistence as dafPersist
 import pickleMapper
 
+
 class MapperImportTestCase(unittest.TestCase):
     """A test case for the data butler finding a Mapper in a root"""
 
@@ -42,7 +43,6 @@ class MapperImportTestCase(unittest.TestCase):
         del self.butler
         if os.path.exists('tests/root/out'):
             shutil.rmtree('tests/root/out')
-
 
     def testMapperClass(self):
         repository = self.butler.repository
@@ -66,6 +66,7 @@ class MapperImportTestCase(unittest.TestCase):
         bbox = [[1, 2], [8, 9]]
         self.checkIO(butler, bbox, 1)
 
+
 def suite():
     utilsTests.init()
 
@@ -73,6 +74,7 @@ def suite():
     suites += unittest.makeSuite(MapperImportTestCase)
     suites += unittest.makeSuite(utilsTests.MemoryTestCase)
     return unittest.TestSuite(suites)
+
 
 def run(shouldExit = False):
     utilsTests.run(suite(), shouldExit)

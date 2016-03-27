@@ -38,12 +38,14 @@ import lsst.utils.tests as utilsTests
 import lsst.daf.persistence as dp
 from lsst.daf.persistence import posixRepoCfg, Policy
 
+
 class PosixPickleStringHanlder:
+
     @staticmethod
     def get(butlerLocation):
         if butlerLocation.storageName != "PickleStorage":
             raise TypeError("PosixStoragePickleMapper only supports PickleStorage")
-        location = butlerLocation.getLocations()[0] # should never be more than 1 location
+        location = butlerLocation.getLocations()[0]  # should never be more than 1 location
         with open(location, 'r') as f:
             ret = cPickle.load(f)
         return ret
@@ -57,11 +59,12 @@ class PosixPickleStringHanlder:
                 cPickle.dump(obj, f, cPickle.HIGHEST_PROTOCOL)
 
 
-
 class TestMapperCfg(Policy, yaml.YAMLObject):
     yaml_tag = u"!TestMapperCfg"
+
     def __init__(self, cls, root):
-        super(TestMapperCfg, self).__init__({'root':root, 'cls':cls})
+        super(TestMapperCfg, self).__init__({'root': root, 'cls': cls})
+
 
 class TestMapper(dp.Mapper):
 
@@ -88,6 +91,7 @@ class TestMapper(dp.Mapper):
         return dp.ButlerLocation(pythonType=PosixPickleStringHanlder, cppType=None,
                                  storageName='PickleStorage', locationList=location, dataId=dataId, mapper=self,
                                  access=self.access)
+
 
 class ReposInButler(unittest.TestCase):
 
@@ -126,11 +130,11 @@ class ReposInButler(unittest.TestCase):
         # this will get populated by the repoOfRepos template.
         repoCfg = dp.Repository.cfg(accessCfg=dp.Access.cfg(dp.PosixStorage.cfg()), mapper=TestMapper.cfg())
         # and put that config into the repoOfRepos.
-        repoButler.put(repoCfg, 'cfg', dataId={'version':123})
+        repoButler.put(repoCfg, 'cfg', dataId={'version': 123})
 
         # get the cfg back out of the butler. This will return a cfg with the root location populated.
         # i.e. repoCfg['accessCfg.storageCfg.root'] is populated.
-        repoCfg = repoButler.get('cfg', dataId={'version':123}, immediate=True)
+        repoCfg = repoButler.get('cfg', dataId={'version': 123}, immediate=True)
         putButler = dp.Butler(dp.Butler.cfg(repoCfg=repoCfg))
 
         # Next create a butler for reading
@@ -139,25 +143,25 @@ class ReposInButler(unittest.TestCase):
         getButler = dp.Butler(getButlerCfg)
 
         obj = 'abc'
-        putButler.put(obj, 'str', {'strId':'a'})
-        reloadedObj = getButler.get('str', {'strId':'a'})
+        putButler.put(obj, 'str', {'strId': 'a'})
+        reloadedObj = getButler.get('str', {'strId': 'a'})
         self.assertEqual(obj, reloadedObj)
-        self.assertTrue(obj is not reloadedObj) # reloaded object should be a new instance.
+        self.assertTrue(obj is not reloadedObj)  # reloaded object should be a new instance.
 
         # explicitly release some objects; these names will be reused momentarily.
         del getButler, putButler, repoCfg, obj, reloadedObj
 
         # Create another repository, and put it in the repo of repos, with a new version number.
         repoCfg = dp.Repository.cfg(accessCfg=dp.Access.cfg(dp.PosixStorage.cfg()), mapper=TestMapper.cfg())
-        repoButler.put(repoCfg, 'cfg', dataId={'version':124})
-        repoCfg = repoButler.get('cfg', dataId={'version':124}, immediate=True)
+        repoButler.put(repoCfg, 'cfg', dataId={'version': 124})
+        repoCfg = repoButler.get('cfg', dataId={'version': 124}, immediate=True)
         putButler = dp.Butler(dp.Butler.cfg(repoCfg=repoCfg))
         getButler = dp.Butler(dp.Butler.cfg(repoCfg=dp.Repository.cfg(parentCfgs=(repoCfg))))
         # create an object that is slightly different than the object in repo version 123, and give it the
         # same dataId as the object in repo 123. Put it, and get it to verify.
         obj = 'abcd'
-        putButler.put(obj, 'str', {'strId':'a'})
-        reloadedObj = getButler.get('str', {'strId':'a'})
+        putButler.put(obj, 'str', {'strId': 'a'})
+        reloadedObj = getButler.get('str', {'strId': 'a'})
         self.assertEqual(obj, reloadedObj)
         self.assertTrue(obj is not reloadedObj)
 
@@ -166,20 +170,22 @@ class ReposInButler(unittest.TestCase):
 
         # from the repo butler, get the cfgs for both repo versions, create butlers from each of them, get
         # the objects, and verify correct values.
-        repo123Cfg = repoButler.get('cfg', dataId={'version':123}, immediate=True)
-        repo124Cfg = repoButler.get('cfg', dataId={'version':124}, immediate=True)
+        repo123Cfg = repoButler.get('cfg', dataId={'version': 123}, immediate=True)
+        repo124Cfg = repoButler.get('cfg', dataId={'version': 124}, immediate=True)
         butler123 = dp.Butler(dp.Butler.cfg(repoCfg=dp.Repository.cfg(parentCfgs=(repo123Cfg))))
         butler124 = dp.Butler(dp.Butler.cfg(repoCfg=dp.Repository.cfg(parentCfgs=(repo124Cfg))))
-        obj123 = butler123.get('str', {'strId':'a'})
-        obj124 = butler124.get('str', {'strId':'a'})
+        obj123 = butler123.get('str', {'strId': 'a'})
+        obj124 = butler124.get('str', {'strId': 'a'})
         self.assertEqual(obj123, 'abc')
         self.assertEqual(obj124, 'abcd')
+
 
 def suite():
     utilsTests.init()
     suites = []
     suites += unittest.makeSuite(ReposInButler)
     return unittest.TestSuite(suites)
+
 
 def run(shouldExit = False):
     utilsTests.run(suite(), shouldExit)

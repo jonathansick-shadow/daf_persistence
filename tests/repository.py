@@ -37,16 +37,18 @@ import lsst.utils.tests as utilsTests
 import lsst.daf.persistence as dp
 from lsst.daf.persistence import posixRepoCfg, Policy
 
+
 def repoCfg(*args, **kwargs):
     """short hack to work around the issue that the root must be in mapperArgs in some cases"""
-    kwargs['mapperArgs'] = {'root':kwargs['root']} if 'root' in kwargs else None
+    kwargs['mapperArgs'] = {'root': kwargs['root']} if 'root' in kwargs else None
     return posixRepoCfg(*args, **kwargs)
+
 
 class ParentMapper(dp.Mapper):
 
     @classmethod
     def cfg(cls, root=None):
-        return Policy({'cls':cls, 'root':root})
+        return Policy({'cls': cls, 'root': root})
 
     def __init__(self, cfg):
         try:
@@ -74,7 +76,7 @@ class ParentMapper(dp.Mapper):
         return pyfits.open(location.getLocations()[0])
 
     def query_raw(self, format, dataId):
-        values = [{'visit':1, 'filter':'g'}, {'visit':2, 'filter':'g'}, {'visit':3, 'filter':'r'}]
+        values = [{'visit': 1, 'filter': 'g'}, {'visit': 2, 'filter': 'g'}, {'visit': 3, 'filter': 'r'}]
         matches = []
         for value in values:
             match = True
@@ -170,9 +172,9 @@ class TestBasics(unittest.TestCase):
         del self.butler
 
     def testGet(self):
-        raw_image = self.butler.get(self.datasetType, {'visit':'2', 'filter':'g'})
+        raw_image = self.butler.get(self.datasetType, {'visit': '2', 'filter': 'g'})
         # in this case the width is known to be 1026:
-        self.assertEqual(raw_image[1].header["NAXIS1"], 1026) # raw_image is an lsst.afw.ExposureU
+        self.assertEqual(raw_image[1].header["NAXIS1"], 1026)  # raw_image is an lsst.afw.ExposureU
 
     def testSubset(self):
         subset = self.butler.subset(self.datasetType)
@@ -182,12 +184,12 @@ class TestBasics(unittest.TestCase):
         keys = self.butler.getKeys(self.datasetType)
         self.assertEqual('filter' in keys, True)
         self.assertEqual('visit' in keys, True)
-        self.assertEqual(keys['filter'], type("")) # todo how to define a string type?
-        self.assertEqual(keys['visit'], type(1)) # todo how to define an int type?
+        self.assertEqual(keys['filter'], type(""))  # todo how to define a string type?
+        self.assertEqual(keys['visit'], type(1))  # todo how to define an int type?
 
     def testQueryMetadata(self):
         keys = self.butler.getKeys(self.datasetType)
-        expectedKeyValues = {'filter':['g', 'r'], 'visit':[1, 2, 3]}
+        expectedKeyValues = {'filter': ['g', 'r'], 'visit': [1, 2, 3]}
         for key in keys:
             format = (key, )
             val = self.butler.queryMetadata(self.datasetType, format)
@@ -195,14 +197,14 @@ class TestBasics(unittest.TestCase):
 
     def testDatasetExists(self):
         # test the valeus that are expected to be true:
-        self.assertEqual(self.butler.datasetExists(self.datasetType, {'filter':'g', 'visit':1}), True)
-        self.assertEqual(self.butler.datasetExists(self.datasetType, {'filter':'g', 'visit':2}), True)
-        self.assertEqual(self.butler.datasetExists(self.datasetType, {'filter':'r', 'visit':3}), True)
+        self.assertEqual(self.butler.datasetExists(self.datasetType, {'filter': 'g', 'visit': 1}), True)
+        self.assertEqual(self.butler.datasetExists(self.datasetType, {'filter': 'g', 'visit': 2}), True)
+        self.assertEqual(self.butler.datasetExists(self.datasetType, {'filter': 'r', 'visit': 3}), True)
 
         # test a few values that are expected to be false:
-        self.assertEqual(self.butler.datasetExists(self.datasetType, {'filter':'f', 'visit':1}), False)
-        self.assertEqual(self.butler.datasetExists(self.datasetType, {'filter':'r', 'visit':1}), False)
-        self.assertEqual(self.butler.datasetExists(self.datasetType, {'filter':'g', 'visit':3}), False)
+        self.assertEqual(self.butler.datasetExists(self.datasetType, {'filter': 'f', 'visit': 1}), False)
+        self.assertEqual(self.butler.datasetExists(self.datasetType, {'filter': 'r', 'visit': 1}), False)
+        self.assertEqual(self.butler.datasetExists(self.datasetType, {'filter': 'g', 'visit': 3}), False)
 
 
 ##############################################################################################################
@@ -210,6 +212,7 @@ class TestBasics(unittest.TestCase):
 ##############################################################################################################
 
 class MapperForTestWriting(dp.Mapper):
+
     def __init__(self, root):
         self.root = root
 
@@ -228,6 +231,7 @@ class MapperForTestWriting(dp.Mapper):
 
 
 class TestObject(object):
+
     def __init__(self, data):
         self.data = data
 
@@ -274,9 +278,9 @@ class TestWriting(unittest.TestCase):
         butlerAB = dp.Butler(butlerCfg)
 
         objA = TestObject('abc')
-        butlerAB.put(objA, 'foo', {'val':1})
+        butlerAB.put(objA, 'foo', {'val': 1})
         objB = TestObject('def')
-        butlerAB.put(objB, 'foo', {'val':2})
+        butlerAB.put(objB, 'foo', {'val': 2})
 
         # create butlers where the output repos are now input repos
 
@@ -290,10 +294,10 @@ class TestWriting(unittest.TestCase):
         butlerD = dp.Butler(dp.Butler.cfg(repoCfg=repoCfg))
 
         # # verify the objects exist by getting them
-        self.assertEqual(objA, butlerC.get('foo', {'val':1}))
-        self.assertEqual(objA, butlerC.get('foo', {'val':1}))
-        self.assertEqual(objB, butlerD.get('foo', {'val':2}))
-        self.assertEqual(objB, butlerD.get('foo', {'val':2}))
+        self.assertEqual(objA, butlerC.get('foo', {'val': 1}))
+        self.assertEqual(objA, butlerC.get('foo', {'val': 1}))
+        self.assertEqual(objB, butlerD.get('foo', {'val': 2}))
+        self.assertEqual(objB, butlerD.get('foo', {'val': 2}))
 
 
 class TestParentMasking(unittest.TestCase):
@@ -318,21 +322,21 @@ class TestParentMasking(unittest.TestCase):
         repoACfg = repoCfg(root='tests/repository/repoA', mapper=MapperForTestWriting)
         butler = dp.Butler(dp.Butler.cfg(repoCfg=repoACfg))
         obj0 = TestObject('abc')
-        butler.put(obj0, 'foo', {'bar':1})
+        butler.put(obj0, 'foo', {'bar': 1})
         del butler
 
         repoBCfg = repoCfg(root='tests/repository/repoB', parentRepoCfgs=(repoACfg,),
-                               mapper=MapperForTestWriting)
+                           mapper=MapperForTestWriting)
         butler = dp.Butler(dp.Butler.cfg(repoCfg=repoBCfg))
-        obj1 = butler.get('foo', {'bar':1})
+        obj1 = butler.get('foo', {'bar': 1})
         self.assertEqual(obj0, obj1)
         obj1.data = "def"
-        butler.put(obj1, 'foo', {'bar':1})
+        butler.put(obj1, 'foo', {'bar': 1})
 
         repoCCfg = repoCfg(root='tests/repository/repoB', parentRepoCfgs=(repoBCfg,),
-                               mapper=MapperForTestWriting)
+                           mapper=MapperForTestWriting)
         butler = dp.Butler(dp.Butler.cfg(repoCfg=repoCCfg))
-        obj2 = butler.get('foo', {'bar':1})
+        obj2 = butler.get('foo', {'bar': 1})
         self.assertEqual(obj1, obj2)
 
 
@@ -353,16 +357,15 @@ class TestPeerPut(unittest.TestCase):
         repoACfg = repoCfg(root='tests/repository/repoA', mapper=MapperForTestWriting)
         repoBCfg = repoCfg(root='tests/repository/repoB', mapper=MapperForTestWriting)
         repoCCfg = repoCfg(root='tests/repository/repoC', mapper=MapperForTestWriting,
-                               peerCfgs=[repoACfg, repoBCfg])
-
+                           peerCfgs=[repoACfg, repoBCfg])
 
         butler = dp.Butler(dp.Butler.cfg(repoCfg=repoCCfg))
         obj0 = TestObject('abc')
-        butler.put(obj0, 'foo', {'bar':1})
+        butler.put(obj0, 'foo', {'bar': 1})
 
         for cfg in (repoACfg, repoBCfg, repoCCfg):
             butler = dp.Butler(dp.Butler.cfg(repoCfg=repoCfg(parentRepoCfgs=(cfg,))))
-            self.assertEqual(butler.get('foo', {'bar':1}), obj0)
+            self.assertEqual(butler.get('foo', {'bar': 1}), obj0)
 
 
 class TestAggregateParent(unittest.TestCase):
@@ -381,7 +384,6 @@ class TestAggregateParent(unittest.TestCase):
         if os.path.exists('tests/repository'):
             shutil.rmtree('tests/repository')
 
-
     def test(self):
         repoACfg = repoCfg(root='tests/repository/repoA', mapper=MapperForTestWriting)
         repoBCfg = repoCfg(root='tests/repository/repoB', mapper=MapperForTestWriting)
@@ -392,26 +394,26 @@ class TestAggregateParent(unittest.TestCase):
 
         # identical overlapping contents
         obj0 = TestObject('abc')
-        butlerA.put(obj0, 'foo', {'bar':1})
-        butlerB.put(obj0, 'foo', {'bar':1})
-        self.assertEqual(readerA.get('foo', {'bar':1}), obj0)
-        self.assertEqual(readerB.get('foo', {'bar':1}), obj0)
+        butlerA.put(obj0, 'foo', {'bar': 1})
+        butlerB.put(obj0, 'foo', {'bar': 1})
+        self.assertEqual(readerA.get('foo', {'bar': 1}), obj0)
+        self.assertEqual(readerB.get('foo', {'bar': 1}), obj0)
 
         # overlapping dataId with different values
         obj1 = TestObject('abc')
         obj2 = TestObject('def')
-        butlerA.put(obj1, 'foo', {'bar':2})
-        butlerB.put(obj2, 'foo', {'bar':2})
-        self.assertEqual(readerA.get('foo', {'bar':2}), obj1)
-        self.assertEqual(readerB.get('foo', {'bar':2}), obj2)
+        butlerA.put(obj1, 'foo', {'bar': 2})
+        butlerB.put(obj2, 'foo', {'bar': 2})
+        self.assertEqual(readerA.get('foo', {'bar': 2}), obj1)
+        self.assertEqual(readerB.get('foo', {'bar': 2}), obj2)
 
         # entirely different dataId & values
         obj3 = TestObject('abc')
         obj4 = TestObject('def')
-        butlerA.put(obj3, 'foo', {'bar':3})
-        butlerB.put(obj4, 'foo', {'bar':4})
-        self.assertEqual(readerA.get('foo', {'bar':3}), obj3)
-        self.assertEqual(readerB.get('foo', {'bar':4}), obj4)
+        butlerA.put(obj3, 'foo', {'bar': 3})
+        butlerB.put(obj4, 'foo', {'bar': 4})
+        self.assertEqual(readerA.get('foo', {'bar': 3}), obj3)
+        self.assertEqual(readerB.get('foo', {'bar': 4}), obj4)
 
         del butlerA
         del butlerB
@@ -422,23 +424,24 @@ class TestAggregateParent(unittest.TestCase):
         repoACfg = repoCfg(root='tests/repository/repoA', mapper=MapperForTestWriting)
         repoBCfg = repoCfg(root='tests/repository/repoB', mapper=MapperForTestWriting)
         repoABCfg = repoCfg(root='tests/repository/repoAB', mapper=MapperForTestWriting,
-                                parentRepoCfgs=(repoACfg, repoBCfg))
+                            parentRepoCfgs=(repoACfg, repoBCfg))
         butlerAB = dp.Butler(dp.Butler.cfg(repoCfg=repoABCfg))
-        res = butlerAB.get('foo', {'bar':1})
+        res = butlerAB.get('foo', {'bar': 1})
         self.assertEqual(res, (obj0))
 
         # test first-found get behavior
         repoACfg = repoCfg(root='tests/repository/repoA', mapper=MapperForTestWriting)
         repoBCfg = repoCfg(root='tests/repository/repoB', mapper=MapperForTestWriting)
         repoABCfg = repoCfg(root='tests/repository/repoAB', mapper=MapperForTestWriting,
-                                parentRepoCfgs=(repoACfg, repoBCfg), parentJoin='outer')
+                            parentRepoCfgs=(repoACfg, repoBCfg), parentJoin='outer')
         butlerAB = dp.Butler(dp.Butler.cfg(repoCfg=repoABCfg))
         try:
-            res = butlerAB.get('foo', {'bar':1})
+            res = butlerAB.get('foo', {'bar': 1})
             self.assertTrue(False, "butlerAB.get should have thrown")
         except dp.butlerExceptions.MultipleResults as e:
             # the butler should have found 2 results
             self.assertEqual(len(e.locations), 2)
+
 
 def suite():
     utilsTests.init()
@@ -449,6 +452,7 @@ def suite():
     suites += unittest.makeSuite(TestAggregateParent)
     suites += unittest.makeSuite(TestPeerPut)
     return unittest.TestSuite(suites)
+
 
 def run(shouldExit = False):
     utilsTests.run(suite(), shouldExit)

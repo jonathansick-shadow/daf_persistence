@@ -33,6 +33,7 @@ from lsst.daf.persistence import Access, Policy, Mapper, LogicalLocation, Butler
 
 import yaml
 
+
 class RepositoryCfg(Policy, yaml.YAMLObject):
     yaml_tag = u"!RepositoryCfg"
     yaml_loader = yaml.Loader
@@ -42,17 +43,18 @@ class RepositoryCfg(Policy, yaml.YAMLObject):
         super(RepositoryCfg, self).__init__()
         if not hasattr(parentCfgs, '__iter__'):
             parentCfgs = (parentCfgs,)
-        self.update({'cls':cls, 'id':id, 'accessCfg':accessCfg, 'parentCfgs':parentCfgs,
-                   'parentJoin':parentJoin, 'peerCfgs':peerCfgs, 'mapper':mapper,
-                   'mapperArgs':mapperArgs})
+        self.update({'cls': cls, 'id': id, 'accessCfg': accessCfg, 'parentCfgs': parentCfgs,
+                     'parentJoin': parentJoin, 'peerCfgs': peerCfgs, 'mapper': mapper,
+                     'mapperArgs': mapperArgs})
 
     @staticmethod
     def to_yaml(dumper, obj):
         return dumper.represent_mapping(RepositoryCfg.yaml_tag,
-                                        {'cls':obj['cls'], 'id':obj['id'], 'accessCfg':obj['accessCfg'],
-                                         'parentCfgs':obj['parentCfgs'], 'parentJoin':obj['parentJoin'],
-                                         'peerCfgs':obj['peerCfgs'], 'mapper':obj['mapper'],
-                                         'mapperArgs':obj['mapperArgs']})
+                                        {'cls': obj['cls'], 'id': obj['id'], 'accessCfg': obj['accessCfg'],
+                                         'parentCfgs': obj['parentCfgs'], 'parentJoin': obj['parentJoin'],
+                                         'peerCfgs': obj['peerCfgs'], 'mapper': obj['mapper'],
+                                         'mapperArgs': obj['mapperArgs']})
+
     @staticmethod
     def from_yaml(loader, node):
         obj = loader.construct_mapping(node)
@@ -84,6 +86,7 @@ class RepositoryCfg(Policy, yaml.YAMLObject):
                 os.makedirs(os.path.dirname(logLoc.locString()))
             with open(logLoc.locString(), 'w') as f:
                 yaml.dump(obj, f)
+
 
 class Repository(object):
     """
@@ -159,7 +162,6 @@ class Repository(object):
             return repoCfg['cls'](repoCfg)
         return repoCfg
 
-
     def __init__(self, cfg):
         '''Initialize a Repository with parameters input via config.
 
@@ -219,7 +221,8 @@ class Repository(object):
         # now if mapper is a class type (not instance), instantiate it:
         if inspect.isclass(mapper):
             # cameraMapper requires root which is not ideal. it should be accessing objects via storage.
-            # cameraMapper and other existing mappers (hscMapper) will require much refactoring to support this.
+            # cameraMapper and other existing mappers (hscMapper) will require much
+            # refactoring to support this.
             args = inspect.getargspec(mapper.__init__)
             useRootKeyword = not 'cfg' in args.args
             if not useRootKeyword:
@@ -237,7 +240,6 @@ class Repository(object):
                     mapperArgs['root'] = self._access.root()
                 mapper = mapper(**mapperArgs)
         self._mapper = mapper
-
 
         def __repr__(self):
             return 'config(id=%s, accessCfg=%s, parent=%s, mapper=%s, mapperArgs=%s, cls=%s)' % \
@@ -418,7 +420,7 @@ class Repository(object):
         :return: An item or a list, depending on parentJoin rules. The type of item is dependent on the mapper
         being used but is typically a set that contains available values for the keys in the format iarg.
         """
-        mdList= self.doParents(Repository.doQueryMetadata, *args, **kwargs)
+        mdList = self.doParents(Repository.doQueryMetadata, *args, **kwargs)
         return mdList
 
     def doQueryMetadata(self, *args, **kwargs):

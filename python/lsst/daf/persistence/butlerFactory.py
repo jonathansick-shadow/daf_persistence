@@ -28,6 +28,7 @@
 
 from lsst.daf.persistence import Butler
 
+
 class ButlerFactory(object):
     """ButlerFactory creates data Butlers containing data mappers.  Use of it
     is deprecated in favor of the direct Butler constructor.

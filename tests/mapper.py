@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
-# 
+#
 # LSST Data Management System
 # Copyright 2008, 2009, 2010 LSST Corporation.
-# 
+#
 # This product includes software developed by the
 # LSST Project (http://www.lsst.org/).
 #
@@ -11,14 +11,14 @@
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
-# You should have received a copy of the LSST License Statement and 
-# the GNU General Public License along with this program.  If not, 
+#
+# You should have received a copy of the LSST License Statement and
+# the GNU General Public License along with this program.  If not,
 # see <http://www.lsstcorp.org/LegalNotices/>.
 #
 
@@ -28,7 +28,9 @@ import lsst.utils.tests as utilsTests
 
 import lsst.daf.persistence as dafPersist
 
+
 class MinMapper(dafPersist.Mapper):
+
     def __init__(self):
         pass
 
@@ -37,18 +39,19 @@ class MinMapper(dafPersist.Mapper):
         if not write:
             path = "parent/" + path
         return dafPersist.ButlerLocation("lsst.afw.image.BBox",
-                "lsst::afw::image::BBox", "PickleStorage", path, {}, self)
+                                         "lsst::afw::image::BBox", "PickleStorage", path, {}, self)
 
     def map_badSourceHist(self, dataId, write):
         path = "badSourceHist%(ccd)d.pickle" % dataId
         return dafPersist.ButlerLocation("lsst.afw.image.BBox",
-                "lsst::afw::image::BBox", "PickleStorage", path, {}, self)
+                                         "lsst::afw::image::BBox", "PickleStorage", path, {}, self)
 
     def query_x(self, format, dataId):
         return [1, 2, 3]
 
     def std_x(self, item, dataId):
         return float(item)
+
 
 class MapperTestCase(unittest.TestCase):
     """A test case for the mapper used by the data butler."""
@@ -58,7 +61,7 @@ class MapperTestCase(unittest.TestCase):
 
     def testGetDatasetTypes(self):
         self.assertEqual(set(self.mapper.getDatasetTypes()),
-                set(["x", "badSourceHist"]))
+                         set(["x", "badSourceHist"]))
 
     def testMap(self):
         loc = self.mapper.map("x", {"ccd": 27})
@@ -78,7 +81,7 @@ class MapperTestCase(unittest.TestCase):
 
     def testQueryMetadata(self):
         self.assertEqual(self.mapper.queryMetadata("x", None, None),
-            [1, 2, 3])
+                         [1, 2, 3])
 
     def testStandardize(self):
         self.assertEqual(self.mapper.canStandardize("x"), True)
@@ -94,6 +97,7 @@ class MapperTestCase(unittest.TestCase):
         self.assertEqual(isinstance(result, float), True)
         self.assertEqual(result, 3.14)
 
+
 def suite():
     utilsTests.init()
 
@@ -101,6 +105,7 @@ def suite():
     suites += unittest.makeSuite(MapperTestCase)
     suites += unittest.makeSuite(utilsTests.MemoryTestCase)
     return unittest.TestSuite(suites)
+
 
 def run(shouldExit = False):
     utilsTests.run(suite(), shouldExit)

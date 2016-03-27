@@ -41,12 +41,14 @@ class FsScannerTestCase(unittest.TestCase):
         res = scanner.processPath('tests/testFsScanner')
         self.assertEqual(res, {'raw_v1_fg.fits.gz': {'visit': 1, 'filter': 'g'}})
 
+
 def suite():
     utilsTests.init()
 
     suites = []
     suites += unittest.makeSuite(FsScannerTestCase)
     return unittest.TestSuite(suites)
+
 
 def run(shouldExit = False):
     utilsTests.run(suite(), shouldExit)

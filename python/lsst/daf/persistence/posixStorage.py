@@ -33,6 +33,7 @@ import lsst.pex.logging as pexLog
 import lsst.pex.policy as pexPolicy
 from .safeFileIo import SafeFilename
 
+
 class StorageCfg(Policy):
     yaml_tag = u"!StorageCfg"
     yaml_loader = yaml.Loader
@@ -40,11 +41,11 @@ class StorageCfg(Policy):
 
     def __init__(self, cls, root=None):
         super(StorageCfg, self).__init__()
-        self.update({'root':root, 'cls':cls})
+        self.update({'root': root, 'cls': cls})
 
     @staticmethod
     def to_yaml(dumper, obj):
-        return dumper.represent_mapping(StorageCfg.yaml_tag, {'cls':obj['cls']})
+        return dumper.represent_mapping(StorageCfg.yaml_tag, {'cls': obj['cls']})
 
     @staticmethod
     def from_yaml(loader, node):
@@ -103,8 +104,8 @@ class PosixStorage(object):
                 basePath = os.path.join(basePath, "_parent")
             else:
                 raise RuntimeError(
-                        "No mapper provided and no %s available" %
-                        (mapperFile,))
+                    "No mapper provided and no %s available" %
+                    (mapperFile,))
         mapperFile = os.path.join(basePath, mapperFile)
 
         # Read the name of the mapper class and instantiate it
@@ -113,7 +114,7 @@ class PosixStorage(object):
         components = mapperName.split(".")
         if len(components) <= 1:
             raise RuntimeError("Unqualified mapper name %s in %s" %
-                    (mapperName, mapperFile))
+                               (mapperName, mapperFile))
         pkg = importlib.import_module(".".join(components[:-1]))
         return getattr(pkg, components[-1])
 
@@ -229,7 +230,8 @@ class PosixStorage(object):
                 importType = __import__(importPackage, globals(), locals(), [importClassString], -1)
                 pythonType = getattr(importType, importClassString)
 
-        # see note re. discomfort with the name 'butlerWrite' in the write method, above. Same applies to butlerRead.
+        # see note re. discomfort with the name 'butlerWrite' in the write method,
+        # above. Same applies to butlerRead.
         if hasattr(pythonType, 'butlerRead'):
             results = pythonType.butlerRead(butlerLocation=butlerLocation)
             return results
@@ -262,7 +264,7 @@ class PosixStorage(object):
                 storage = self.persistence.getRetrieveStorage(storageName, logLoc)
                 storageList.append(storage)
                 itemData = self.persistence.unsafeRetrieve(
-                        butlerLocation.getCppType(), storageList, additionalData)
+                    butlerLocation.getCppType(), storageList, additionalData)
                 finalItem = pythonType.swigConvert(itemData)
             results.append(finalItem)
 
